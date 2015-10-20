@@ -8,10 +8,9 @@ const Sender = require('./lib/sender')
 //   source_password
 //   destination_ledger
 //   destination_amount
-// hops - [ {trader, source, destination} ]
-module.exports = co.wrap(function * (params, hops) {
+module.exports = co.wrap(function * (params) {
   let sender = new Sender(params)
-  yield sender.findPath(hops)
+  yield sender.findPath()
   yield sender.setupTransfers()
   yield sender.postTransfers()
   yield sender.postPayments()
