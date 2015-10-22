@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/ripple/five-bells-sender#readme",
   "dependencies": {
-    "@ripple/five-bells-pathfind": "^2.0.0",
+    "@ripple/five-bells-pathfind": "^3.0.0",
     "co": "^4.6.0",
     "co-request": "^1.0.0",
     "uuid4": "^1.0.0"
