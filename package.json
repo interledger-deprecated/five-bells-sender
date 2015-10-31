@@ -1,7 +1,12 @@
 {
-  "name": "@ripple/five-bells-sender",
+  "name": "five-bells-sender",
   "version": "2.0.2",
-  "description": "",
+  "description": "A basic Five Bells sending client library",
+  "keywords": [
+    "interledger",
+    "five-bells",
+    "ilp"
+  ],
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
@@ -9,16 +14,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:ripple/five-bells-sender.git"
+    "url": "git@github.com:interledger/five-bells-sender.git"
   },
   "author": "Ripple <info@ripple.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ripple/five-bells-sender/issues"
+    "url": "https://github.com/interledger/five-bells-sender/issues"
   },
-  "homepage": "https://github.com/ripple/five-bells-sender#readme",
+  "homepage": "https://github.com/interledger/five-bells-sender#readme",
   "dependencies": {
-    "@ripple/five-bells-pathfind": "^3.0.0",
+    "five-bells-pathfind": "~4.0.0",
     "co": "^4.6.0",
     "co-request": "^1.0.0",
     "uuid4": "^1.0.0"
