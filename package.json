@@ -1,6 +1,6 @@
 {
   "name": "five-bells-sender",
-  "version": "2.0.2",
+  "version": "3.0.0",
   "description": "A basic Five Bells sending client library",
   "keywords": [
     "interledger",
