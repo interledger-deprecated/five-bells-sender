@@ -28,15 +28,15 @@ function Sender (params) {
   this.finalTransfer = null
 }
 
-Sender.prototype.findPath = function * () {
-  yield this.pathfinder.crawl()
-  this.subpayments = yield this.pathfinder.findPath(
+Sender.prototype.findPath = async function () {
+  await this.pathfinder.crawl()
+  this.subpayments = await this.pathfinder.findPath(
     this.source_ledger,
     this.destination_ledger,
     this.destination_amount)
 }
 
-Sender.prototype.setupTransfers = function * () {
+Sender.prototype.setupTransfers = async function () {
   let payments = this.subpayments
   let firstPayment = payments[0]
   let firstTransfer = firstPayment.source_transfers[0]
@@ -68,7 +68,7 @@ Sender.prototype.setupTransfers = function * () {
   finalTransfer.expires_at = expiryDate.toISOString()
   delete finalTransfer.expiry_duration
 
-  let executionCondition = yield this.getCondition()
+  let executionCondition = await this.getCondition()
 
   // Prepare remaining transfer objects
   let transfers = this.transfers = []
@@ -88,9 +88,9 @@ Sender.prototype.setupTransfers = function * () {
   transfers[0].debits[0].authorized = true
 }
 
-Sender.prototype.getCondition = function * () {
+Sender.prototype.getCondition = async function () {
   let finalTransfer = this.finalTransfer
-  let finalTransferRes = yield request
+  let finalTransferRes = await request
     .put(finalTransfer.id)
     .send(finalTransfer)
   if (finalTransferRes.status >= 400) {
@@ -98,7 +98,7 @@ Sender.prototype.getCondition = function * () {
       JSON.stringify(finalTransferRes.body))
   }
 
-  let finalTransferStateRes = yield request
+  let finalTransferStateRes = await request
     .get(finalTransfer.id + '/state')
   if (finalTransferStateRes.status >= 400) {
     throw new Error('Remote error: ' + finalTransferStateRes.status + ' ' +
@@ -118,12 +118,12 @@ Sender.prototype.getCondition = function * () {
 }
 
 // Propose + Prepare transfers
-Sender.prototype.postTransfers = function * () {
+Sender.prototype.postTransfers = async function () {
   let transfers = this.transfers
   // TODO Theoretically we'd need to keep track of the signed responses
   // Prepare first transfer
   let transfer = transfers[0]
-  let transferRes = yield request
+  let transferRes = await request
     .put(transfer.id)
     .auth(this.source_username, this.source_password)
     .send(transfer)
@@ -133,7 +133,7 @@ Sender.prototype.postTransfers = function * () {
 
   // Propose other transfers
   for (transfer of transfers.slice(1)) {
-    transferRes = yield request
+    transferRes = await request
       .put(transfer.id)
       .send(transfer)
     if (transferRes.status >= 400) {
@@ -148,7 +148,7 @@ Sender.prototype.postTransfers = function * () {
   transfers.push(this.finalTransfer)
 }
 
-Sender.prototype.postPayments = function * () {
+Sender.prototype.postPayments = async function () {
   let payments = this.subpayments
   let transfers = this.transfers
   for (let i = 0; i < payments.length; i++) {
@@ -156,7 +156,7 @@ Sender.prototype.postPayments = function * () {
     payment.source_transfers = [transfers[i]]
     payment.destination_transfers = [transfers[i + 1]]
 
-    let paymentRes = yield request
+    let paymentRes = await request
       .put(payment.id)
       .send(payment)
     if (paymentRes.status >= 400) {
@@ -178,4 +178,4 @@ function toAccount (ledger, name) {
   return ledger + '/accounts/' + encodeURIComponent(name)
 }
 
-module.exports = Sender
+export default Sender
