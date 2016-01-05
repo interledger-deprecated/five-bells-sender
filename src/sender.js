@@ -130,6 +130,7 @@ Sender.prototype.postTransfers = async function () {
   if (transferRes.status >= 400) {
     throw new Error('Remote error: ' + transferRes.status + ' ' + JSON.stringify(transferRes.body))
   }
+  transfer.state = transferRes.body.state
 
   // Propose other transfers
   for (transfer of transfers.slice(1)) {
