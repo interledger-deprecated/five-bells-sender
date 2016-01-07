@@ -1,5 +1,5 @@
 'use strict'
-const Sender = require('./sender')
+const Sender = require('./sender').default
 
 // params -
 //   source_ledger
