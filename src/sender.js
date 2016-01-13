@@ -10,7 +10,7 @@ function Sender (params) {
   this.source_account = params.source_account || toAccount(this.source_ledger, this.source_username)
   this.source_password = params.source_password
   this.destination_ledger = params.destination_ledger
-  this.destination_account = params.destination_account || toAccount(this.destination_ledger, this.destination_username)
+  this.destination_account = params.destination_account || toAccount(this.destination_ledger, params.destination_username)
   this.destination_amount = params.destination_amount
   this.destination_memo = params.destination_memo
 
