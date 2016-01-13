@@ -7,15 +7,12 @@ const Pathfinder = require('five-bells-pathfind').Pathfinder
 function Sender (params) {
   this.source_ledger = params.source_ledger
   this.source_username = params.source_username
+  this.source_account = params.source_account || toAccount(this.source_ledger, this.source_username)
   this.source_password = params.source_password
   this.destination_ledger = params.destination_ledger
-  this.destination_username = params.destination_username
+  this.destination_account = params.destination_account || toAccount(this.destination_ledger, params.destination_username)
   this.destination_amount = params.destination_amount
-
-  this.source_account = toAccount(
-    this.source_ledger, this.source_username)
-  this.destination_account = toAccount(
-    this.destination_ledger, this.destination_username)
+  this.destination_memo = params.destination_memo
 
   this.pathfinder = new Pathfinder({
     crawler: {
@@ -67,6 +64,9 @@ Sender.prototype.setupTransfers = async function () {
   let expiryDate = new Date(Date.now() + (finalTransfer.expiry_duration * 1000))
   finalTransfer.expires_at = expiryDate.toISOString()
   delete finalTransfer.expiry_duration
+  if (this.destination_memo) {
+    finalTransfer.credits[0].memo = this.destination_memo
+  }
 
   let executionCondition = await this.getCondition()
 
