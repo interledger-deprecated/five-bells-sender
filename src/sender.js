@@ -44,10 +44,12 @@ function Sender (params) {
 
 Sender.prototype.findPath = async function () {
   await this.pathfinder.crawl()
-  this.subpayments = await this.pathfinder.findPath(
-    this.source_ledger,
-    this.destination_ledger,
-    this.destination_amount)
+  this.subpayments = await this.pathfinder.findPath({
+    sourceLedger: this.source_ledger,
+    destinationLedger: this.destination_ledger,
+    destinationAmount: this.destination_amount,
+    destinationAccount: this.destination_account
+  })
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -63,14 +65,7 @@ Sender.prototype.setupTransfers = async function () {
 
   // Add start and endpoints in payment chain from user-provided payment
   // object
-  firstTransfer.debits = [{
-    amount: firstTransfer.credits[0].amount,
-    account: this.source_account
-  }]
-  finalTransfer.credits = [{
-    amount: finalTransfer.debits[0].amount,
-    account: this.destination_account
-  }]
+  firstTransfer.debits[0].account = this.source_account
   // Create final (rightmost) transfer
   finalTransfer.id = finalTransfer.ledger + '/transfers/' + uuid()
   if (this.destination_memo) {
@@ -79,7 +74,6 @@ Sender.prototype.setupTransfers = async function () {
 
   // Fill in remaining transfers data
   payments.reduce(function (left, right) {
-    left.destination_transfers[0].credits = right.source_transfers[0].credits
     right.source_transfers[0].debits = left.destination_transfers[0].debits
     return right
   })
