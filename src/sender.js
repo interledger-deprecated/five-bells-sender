@@ -106,8 +106,8 @@ Sender.prototype.setupTransfers = async function () {
       transfer.execution_condition = executionCondition
       transfer.cancellation_condition = cancellationCondition
       transfer.additional_info.cases = cases
-    // Atomic transfers don't expire
-    // (or rather, their expiry is handled by the cancellation_condition).
+      // Atomic transfers don't expire
+      // (or rather, their expiry is handled by the cancellation_condition).
     } else {
       transfer.expires_at = this.getExpiresAt(transfer)
       if (transfer !== finalTransfer) {

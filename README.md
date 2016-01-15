@@ -13,6 +13,7 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
 
 # Example: Universal Mode
 
+``` js
     send({
       source_ledger:        'http://localhost:3001',
       source_username:      'alice',
@@ -23,9 +24,11 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
     }).then(function() {
       console.log('success')
     })
+```
 
 # Example: Atomic Mode
 
+``` js
     send({
       source_ledger:        'http://localhost:3001',
       source_username:      'alice',
@@ -39,4 +42,5 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
     }).then(function() {
       console.log('success')
     })
+```
 
