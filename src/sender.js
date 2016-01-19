@@ -96,6 +96,8 @@ Sender.prototype.setupTransfers = async function () {
   transfers.push(finalTransfer)
 
   // Build the conditions.
+  this.receipt_condition = await this.setupReceiptCondition()
+  await this.setupCase()
   let executionCondition = await this.getExecutionCondition()
   let cancellationCondition = this.getCancellationCondition()
   let cases = this.isAtomic ? [this.caseID] : undefined
@@ -122,11 +124,8 @@ Sender.prototype.setupTransfers = async function () {
   transfers[0].debits[0].authorized = true
 }
 
-// Returns the compound execution_condition.
-Sender.prototype.getExecutionCondition = async function () {
-  let receiptCondition = await this.getReceiptCondition()
-  if (!this.isAtomic) return receiptCondition
-
+Sender.prototype.setupCase = async function () {
+  if (!this.isAtomic) return
   let caseUUID = uuid()
   this.caseID = this.notary + '/cases/' + encodeURIComponent(caseUUID)
   let caseRes = await request
@@ -134,29 +133,33 @@ Sender.prototype.getExecutionCondition = async function () {
     .send({
       id: this.caseID,
       state: 'proposed',
-      execution_condition: receiptCondition,
+      execution_condition: this.receipt_condition,
       expires_at: this.getExpiresAt(this.subpayments[0].source_transfers[0]),
       notaries: [{url: this.notary}],
-      transfers: this.transfers.map(getID)
+      transfers: this.transfers.map(transfer => transfer.id)
     })
   if (caseRes.statusCode >= 400) {
     throw new Error('Notary error: ' + caseRes.statusCode + ' ' +
       JSON.stringify(caseRes.body))
   }
-  return {
+}
+
+// Returns the compound execution_condition.
+Sender.prototype.getExecutionCondition = async function () {
+  return this.isAtomic ? {
     type: 'and',
     subconditions: [
       this.getNotaryCondition('executed'),
-      receiptCondition
+      this.receipt_condition
     ]
-  }
+  } : this.receipt_condition
 }
 
 Sender.prototype.getCancellationCondition = function () {
   return this.isAtomic && this.getNotaryCondition('cancelled')
 }
 
-Sender.prototype.getReceiptCondition = async function () {
+Sender.prototype.setupReceiptCondition = async function () {
   if (this.receipt_condition) return this.receipt_condition
 
   let finalTransfer = this.finalTransfer
@@ -286,7 +289,5 @@ function sha512 (str) {
 function toAccount (ledger, name) {
   return ledger + '/accounts/' + encodeURIComponent(name)
 }
-
-function getID (transfer) { return transfer.id }
 
 export default Sender

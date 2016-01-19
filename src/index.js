@@ -1,5 +1,5 @@
 'use strict'
-const Sender = require('./sender').default
+import Sender from './sender'
 
 /**
  * Create and execute a transaction.
@@ -26,7 +26,9 @@ export default async function (params) {
   await sender.setupTransfers()
   await sender.postTransfers()
   await sender.postPayments()
-  if (sender.isAtomic) {
+  // If a custom receipt_condition is used, it is the recipient's
+  // job to post fulfillment.
+  if (sender.isAtomic && !params.receipt_condition) {
     await sender.postFulfillmentToNotary()
   }
   return sender.subpayments
