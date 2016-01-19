@@ -10,3 +10,37 @@
 > A reference implementation of an [Interledger](https://interledger.org) sending client
 
 You can see the visualization in action as part of the [`five-bells-demo`](https://github.com/interledger/five-bells-demo)!
+
+# Example: Universal Mode
+
+``` js
+    send({
+      source_ledger:        'http://localhost:3001',
+      source_username:      'alice',
+      source_password:      'alice',
+      destination_ledger:   'http://localhost:3002',
+      destination_username: 'bob',
+      destination_amount:   '1',
+    }).then(function() {
+      console.log('success')
+    })
+```
+
+# Example: Atomic Mode
+
+``` js
+    send({
+      source_ledger:        'http://localhost:3001',
+      source_username:      'alice',
+      source_password:      'alice',
+      destination_ledger:   'http://localhost:3002',
+      destination_username: 'bob',
+      destination_amount:   '1',
+      notary:               'http://localhost:6001',
+      notary_public_key:    'QD/UBKyptEXcu6mZThsfnE/2ZZGsrpokKqaLMUrTUqo=',
+      //receipt_condition:  {message_hash, signer, public_key, type},
+    }).then(function() {
+      console.log('success')
+    })
+```
+
