@@ -20,28 +20,42 @@ function Sender (params) {
     }
   })
 
-  this.subpayments = null
-  this.transfers = null
+  this.subpayments = []
+  this.transfers = []
   this.finalTransfer = null
 }
 
 Sender.prototype.findPath = async function () {
-  await this.pathfinder.crawl()
-  this.subpayments = await this.pathfinder.findPath(
-    this.source_ledger,
-    this.destination_ledger,
-    this.destination_amount)
+  if (this.source_ledger === this.destination_ledger) {
+    // Same ledger transfer
+    // TODO add an execution_condition here whenever we switch to having
+    // the recipient creat the execution_condition_fulfillment
+    // TODO ledger fees?
+    this.transfers.push({
+      debits: [{
+        account: this.source_account,
+        amount: this.destination_amount
+      }],
+      credits: [{
+        account: this.destination_account,
+        amount: this.destination_amount
+      }]
+    })
+  } else {
+    await this.pathfinder.crawl()
+    this.subpayments = await this.pathfinder.findPath(
+      this.source_ledger,
+      this.destination_ledger,
+      this.destination_amount)
+  }
 }
 
 Sender.prototype.setupTransfers = async function () {
   let payments = this.subpayments
-  let firstPayment = payments[0]
-  let firstTransfer = firstPayment.source_transfers[0]
-  let finalPayment = payments[payments.length - 1]
-  let finalTransfer = this.finalTransfer = finalPayment.destination_transfers[0]
+  let firstTransfer = payments.length > 0 ? payments[0].source_transfers[0] : this.transfers[0]
+  let finalTransfer = this.finalTransfer = payments.length > 0 ? payments[payments.length - 1].destination_transfers[0] : this.transfers[0]
 
-  // Add start and endpoints in payment chain from user-provided payment
-  // object
+  // Add start and endpoints in payment chain from user-provided payment object
   firstTransfer.debits = [{
     amount: firstTransfer.credits[0].amount,
     account: this.source_account
@@ -59,8 +73,10 @@ Sender.prototype.setupTransfers = async function () {
   })
 
   // Create final (rightmost) transfer
+  // This is handled separately because the final transfer right now has no
+  // execution condition and we have to calculate its expiryDate
   finalTransfer.id = finalTransfer.ledger + '/transfers/' + uuid()
-  finalTransfer.part_of_payment = finalPayment.id
+  finalTransfer.part_of_payment = payments.length > 0 ? payments[payments.length - 1].id : undefined
   let expiryDate = new Date(Date.now() + (finalTransfer.expiry_duration * 1000))
   finalTransfer.expires_at = expiryDate.toISOString()
   delete finalTransfer.expiry_duration
@@ -68,7 +84,11 @@ Sender.prototype.setupTransfers = async function () {
     finalTransfer.credits[0].memo = this.destination_memo
   }
 
-  let executionCondition = await this.getCondition()
+  // Only set the execution condition if this is not a same-ledger transfer
+  let executionCondition
+  if (payments.length > 0) {
+    executionCondition = await this.getCondition()
+  }
 
   // Prepare remaining transfer objects
   let transfers = this.transfers = []
@@ -155,6 +175,7 @@ Sender.prototype.postPayments = async function () {
   for (let i = 0; i < payments.length; i++) {
     let payment = payments[i]
     payment.source_transfers = [transfers[i]]
+    // TODO this will need to be fixed when payments have more than 1 source or destination transfer
     payment.destination_transfers = [transfers[i + 1]]
 
     let paymentRes = await request
