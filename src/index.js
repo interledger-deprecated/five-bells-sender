@@ -13,5 +13,8 @@ export default async function (params) {
   await sender.setupTransfers()
   await sender.postTransfers()
   await sender.postPayments()
-  return sender.subpayments
+  return {
+    payments: sender.subpayments,
+    transfers: sender.transfers
+  }
 }
