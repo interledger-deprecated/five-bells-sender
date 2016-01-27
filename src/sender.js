@@ -23,13 +23,7 @@ function Sender (params) {
     throw new Error('Missing required parameter: notary_public_key')
   }
 
-  this.pathfinder = new Pathfinder({
-    crawler: {
-      initialLedgers: [this.source_ledger, this.destination_ledger]
-    }
-  })
-
-  this.subpayments = null
+  this.subpayments = params.subpayments
   this.transfers = null
   this.finalTransfer = null
   // Use one Date.now() as the base of all expiries so that when a ms passes
@@ -43,8 +37,13 @@ function Sender (params) {
 // /////////////////////////////////////////////////////////////////////////////
 
 Sender.prototype.findPath = async function () {
-  await this.pathfinder.crawl()
-  this.subpayments = await this.pathfinder.findPath({
+  const pathfinder = new Pathfinder({
+    crawler: {
+      initialLedgers: [this.source_ledger, this.destination_ledger]
+    }
+  })
+  await pathfinder.crawl()
+  this.subpayments = await pathfinder.findPath({
     sourceLedger: this.source_ledger,
     destinationLedger: this.destination_ledger,
     destinationAmount: this.destination_amount,
