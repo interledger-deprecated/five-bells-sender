@@ -129,7 +129,7 @@ Sender.prototype.setupCase = async function () {
       execution_condition: this.receipt_condition,
       expires_at: this.getExpiresAt(this.subpayments[0].source_transfers[0]),
       notaries: [{url: this.notary}],
-      transfers: this.transfers.map(transfer => transfer.id)
+      notification_targets: this.transfers.map(transfer => transfer.id + '/fulfillment')
     })
   if (caseRes.statusCode >= 400) {
     throw new Error('Notary error: ' + caseRes.statusCode + ' ' +
