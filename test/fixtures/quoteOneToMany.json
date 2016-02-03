@@ -1,0 +1,56 @@
+[{
+  "id": "http://connector1.example/payments/1",
+  "source_transfers": [{
+    "ledger": "http://usd-ledger.example",
+    "debits": [{
+      "amount": "10"
+    }],
+    "credits": [{
+      "amount": "10",
+      "account": "http://usd-ledger.example/accounts/mark"
+    }],
+    "execution_condition": {
+      "message_hash": "claZQU7qkFz7smkAVtQp9ekUCc5LgoeN9W3RItIzykNEDbGSvzeHvOk9v/vrPpm+XWx5VFjd/sVbM2SLnCpxLw==",
+      "signer": "http://ledger.example",
+      "type": "ed25519-sha512",
+      "public_key": "Lvf3YtnHLMER+VHT0aaeEJF+7WQcvp4iKZAdvMVto7c="
+    },
+    "state": "prepared"
+  }],
+  "destination_transfers": [{
+    "ledger": "http://eur-ledger.example",
+    "debits": [{
+      "amount": "4.87",
+      "account": "http://eur-ledger.example/accounts/mark"
+    }],
+    "credits": [{
+      "amount": "4.87",
+      "account": "http://eur-ledger.example/accounts/bob"
+    }],
+    "execution_condition": {
+      "message_hash": "claZQU7qkFz7smkAVtQp9ekUCc5LgoeN9W3RItIzykNEDbGSvzeHvOk9v/vrPpm+XWx5VFjd/sVbM2SLnCpxLw==",
+      "signer": "http://ledger.example",
+      "type": "ed25519-sha512",
+      "public_key": "Lvf3YtnHLMER+VHT0aaeEJF+7WQcvp4iKZAdvMVto7c="
+    },
+    "state": "proposed"
+  }, {
+    "id": "http://cny-ledger.example/CNY/transfers/08cde216-e338-4be0-a373-143838349dc2",
+    "ledger": "http://cny-ledger.example/CNY",
+    "debits": [{
+      "amount": "30",
+      "account": "http://cny-ledger.example/accounts/mark"
+    }],
+    "credits": [{
+      "amount": "30",
+      "account": "http://cny-ledger.example/accounts/danielle"
+    }],
+    "execution_condition": {
+      "message_hash": "claZQU7qkFz7smkAVtQp9ekUCc5LgoeN9W3RItIzykNEDbGSvzeHvOk9v/vrPpm+XWx5VFjd/sVbM2SLnCpxLw==",
+      "signer": "http://ledger.example",
+      "type": "ed25519-sha512",
+      "public_key": "Lvf3YtnHLMER+VHT0aaeEJF+7WQcvp4iKZAdvMVto7c="
+    },
+    "state": "proposed"
+  }]
+}]

@@ -1,0 +1,36 @@
+[{
+  "id": "http://connector1.example/payments/1",
+  "source_transfers": [{
+    "ledger": "http://usd-ledger.example",
+    "debits": [{
+      "amount": "10"
+    }],
+    "credits": [{
+      "amount": "10",
+      "account": "http://usd-ledger.example/accounts/mark"
+    }],
+    "execution_condition": {
+      "message_hash": "claZQU7qkFz7smkAVtQp9ekUCc5LgoeN9W3RItIzykNEDbGSvzeHvOk9v/vrPpm+XWx5VFjd/sVbM2SLnCpxLw==",
+      "signer": "http://ledger.example",
+      "type": "ed25519-sha512",
+      "public_key": "Lvf3YtnHLMER+VHT0aaeEJF+7WQcvp4iKZAdvMVto7c="
+    }
+  }],
+  "destination_transfers": [{
+    "ledger": "http://eur-ledger.example",
+    "debits": [{
+      "amount": "4.87",
+      "account": "http://eur-ledger.example/accounts/mark"
+    }],
+    "credits": [{
+      "amount": "4.87",
+      "account": "http://eur-ledger.example/accounts/bob"
+    }],
+    "execution_condition": {
+      "message_hash": "claZQU7qkFz7smkAVtQp9ekUCc5LgoeN9W3RItIzykNEDbGSvzeHvOk9v/vrPpm+XWx5VFjd/sVbM2SLnCpxLw==",
+      "signer": "http://ledger.example",
+      "type": "ed25519-sha512",
+      "public_key": "Lvf3YtnHLMER+VHT0aaeEJF+7WQcvp4iKZAdvMVto7c="
+    }
+  }]
+}]
