@@ -18,7 +18,6 @@ import {
  *
  * Required for both modes:
  * @param {URI} params.sourceAccount - Account URI
- * @param {String} params.sourceUsername
  * @param {String} params.sourcePassword
  * @param {URI} params.destinationAccount - Account URI
  * @param {String} params.destinationAmount - Amount (a string, so as not to lose precision)
@@ -40,7 +39,6 @@ export default async function sendPayment (params) {
   })
   await executePayment(subpayments, {
     sourceAccount: params.sourceAccount,
-    sourceUsername: params.sourceUsername,
     sourcePassword: params.sourcePassword,
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
@@ -57,7 +55,6 @@ export default async function sendPayment (params) {
  *
  * Required for both modes:
  * @param {URI} params.sourceAccount - Account URI
- * @param {String} params.sourceUsername
  * @param {String} params.sourcePassword
  *
  * Required for Atomic mode only:
@@ -71,7 +68,6 @@ export default async function sendPayment (params) {
  */
 export async function executePayment (_subpayments, params) {
   const {
-    sourceUsername,
     sourcePassword,
     sourceAccount,
     notary,
@@ -118,6 +114,7 @@ export async function executePayment (_subpayments, params) {
   })
 
   // Proposal.
+  const sourceUsername = (await getAccount(sourceAccount)).name
   subpayments = await Payments.postTransfers(subpayments, {sourceUsername, sourcePassword})
 
   // Preparation, execution.
@@ -164,13 +161,20 @@ export async function findPath (params) {
 
 /**
  * @param {URI} account
+ * @returns {Promise<Account>}
+ */
+async function getAccount (account) {
+  const res = await request.get(account)
+  if (res.statusCode !== 200) {
+    throw new Error('Unable to identify ledger from account: ' + account)
+  }
+  return res.body
+}
+
+/**
+ * @param {URI} account
  * @returns {Promise<URI>}
  */
 async function getAccountLedger (account) {
-  const res = await request.get(account)
-  const ledger = res.body && res.body.ledger
-  if (res.statusCode !== 200 || !ledger) {
-    throw new Error('Unable to identify ledger from account: ' + account)
-  }
-  return ledger
+  return (await getAccount(account)).ledger
 }
