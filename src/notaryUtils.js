@@ -46,10 +46,10 @@ function transferToFulfillmentURI (transfer) {
  * @param {Promise}
  */
 export async function postFulfillmentToNotary (finalTransfer, caseID) {
-  const state = await getTransferState(finalTransfer)
+  const finalTransferState = await getTransferState(finalTransfer)
   const notaryFulfillmentRes = await request
     .put(caseID + '/fulfillment')
-    .send({ type: state.type, signature: state.signature })
+    .send({ type: finalTransferState.type, signature: finalTransferState.signature })
   if (notaryFulfillmentRes >= 400) {
     throw new Error('Remote error: ' + notaryFulfillmentRes.status + ' ' +
       JSON.stringify(notaryFulfillmentRes.body))

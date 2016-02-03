@@ -5,6 +5,7 @@ test:
   override:
     # Run lint
     - npm run lint
+    - npm test
     # Run tests with coverage
     #- npm test --coverage -- -R spec-xunit-file
     # Extract test artifacts

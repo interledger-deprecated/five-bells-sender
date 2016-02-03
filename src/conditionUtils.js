@@ -1,8 +1,8 @@
 'use strict'
-const request = require('superagent')
 const crypto = require('crypto')
 const stringifyJSON = require('canonical-json')
 const makeCaseAttestation = require('five-bells-shared/utils/makeCaseAttestation')
+import {getTransferState} from './transferUtils'
 
 /**
  * @param {Transfer} finalTransfer
@@ -10,12 +10,7 @@ const makeCaseAttestation = require('five-bells-shared/utils/makeCaseAttestation
  * @returns {Promise<Condition>}
  */
 export async function getReceiptCondition (finalTransfer, state) {
-  const finalTransferStateRes = await request.get(finalTransfer.id + '/state')
-  if (finalTransferStateRes.status >= 400) {
-    throw new Error('Remote error: ' + finalTransferStateRes.status + ' ' +
-      JSON.stringify(finalTransferStateRes.body))
-  }
-
+  const finalTransferState = await getTransferState(finalTransfer)
   // Execution condition is the final transfer in the chain
   return {
     message_hash: hashJSON({
@@ -23,8 +18,8 @@ export async function getReceiptCondition (finalTransfer, state) {
       state: state
     }),
     signer: finalTransfer.ledger,
-    public_key: finalTransferStateRes.body.public_key,
-    type: finalTransferStateRes.body.type
+    public_key: finalTransferState.public_key,
+    type: finalTransferState.type
   }
 }
 
