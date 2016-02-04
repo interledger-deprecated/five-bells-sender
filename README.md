@@ -15,12 +15,10 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
 
 ``` js
     send({
-      source_ledger:        'http://localhost:3001',
-      source_username:      'alice',
-      source_password:      'alice',
-      destination_ledger:   'http://localhost:3002',
-      destination_username: 'bob',
-      destination_amount:   '1',
+      sourceAccount:      'http://localhost:3001/accounts/alice',
+      sourcePassword:     'alice',
+      destinationAccount: 'http://localhost:3002/accounts/alice',
+      destinationAmount:  '1',
     }).then(function() {
       console.log('success')
     })
@@ -30,15 +28,13 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
 
 ``` js
     send({
-      source_ledger:        'http://localhost:3001',
-      source_username:      'alice',
-      source_password:      'alice',
-      destination_ledger:   'http://localhost:3002',
-      destination_username: 'bob',
-      destination_amount:   '1',
-      notary:               'http://localhost:6001',
-      notary_public_key:    'QD/UBKyptEXcu6mZThsfnE/2ZZGsrpokKqaLMUrTUqo=',
-      //receipt_condition:  {message_hash, signer, public_key, type},
+      sourceAccount:      'http://localhost:3001/accounts/alice',
+      sourcePassword:     'alice',
+      destinationAccount: 'http://localhost:3002/accounts/bob',
+      destinationAmount:  '1',
+      notary:             'http://localhost:6001',
+      notaryPublicKey:    'QD/UBKyptEXcu6mZThsfnE/2ZZGsrpokKqaLMUrTUqo=',
+      //receiptCondition: { message_hash, signer, public_key, type },
     }).then(function() {
       console.log('success')
     })
