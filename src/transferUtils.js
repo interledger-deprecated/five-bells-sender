@@ -1,4 +1,6 @@
 'use strict'
+
+const co = require('co')
 const request = require('superagent')
 
 /**
@@ -9,7 +11,7 @@ const request = require('superagent')
  * @param {URI} params.caseID
  * @returns {Transfer}
  */
-export function setupTransferConditionsAtomic (transfer, params) {
+function setupTransferConditionsAtomic (transfer, params) {
   transfer.execution_condition = params.executionCondition
   transfer.cancellation_condition = params.cancellationCondition
   transfer.additional_info = transfer.additional_info || {}
@@ -28,7 +30,7 @@ export function setupTransferConditionsAtomic (transfer, params) {
  * @param {Condition} params.executionCondition
  * @returns {Transfer}
  */
-export function setupTransferConditionsUniversal (transfer, params) {
+function setupTransferConditionsUniversal (transfer, params) {
   transfer.expires_at = transferExpiresAt(params.now, transfer)
   if (!params.isFinalTransfer) {
     transfer.execution_condition = params.executionCondition
@@ -44,16 +46,18 @@ export function setupTransferConditionsUniversal (transfer, params) {
  * @param {String} auth.password
  * @returns {Promise<String>} the state of the transfer
  */
-export async function postTransfer (transfer, auth) {
-  const transferReq = request.put(transfer.id).send(transfer)
-  if (auth) {
-    transferReq.auth(auth.username, auth.password)
-  }
-  const transferRes = await transferReq
-  if (transferRes.status >= 400) {
-    throw new Error('Remote error: ' + transferRes.status + ' ' + JSON.stringify(transferRes.body))
-  }
-  return transferRes.body.state
+function postTransfer (transfer, auth) {
+  return co(function * () {
+    const transferReq = request.put(transfer.id).send(transfer)
+    if (auth) {
+      transferReq.auth(auth.username, auth.password)
+    }
+    const transferRes = yield transferReq
+    if (transferRes.status >= 400) {
+      throw new Error('Remote error: ' + transferRes.status + ' ' + JSON.stringify(transferRes.body))
+    }
+    return transferRes.body.state
+  })
 }
 
 /**
@@ -61,7 +65,7 @@ export async function postTransfer (transfer, auth) {
  * @param {Transfer} transfer
  * @returns {String} ISO-formatted date string
  */
-export function transferExpiresAt (now, transfer) {
+function transferExpiresAt (now, transfer) {
   return (new Date(now + (transfer.expiry_duration * 1000))).toISOString()
 }
 
@@ -69,11 +73,19 @@ export function transferExpiresAt (now, transfer) {
  * @param {Transfer} transfer
  * @returns {Promise<Object>}
  */
-export async function getTransferState (transfer) {
-  const transferStateRes = await request.get(transfer.id + '/state')
-  if (transferStateRes.status >= 400) {
-    throw new Error('Remote error: ' + transferStateRes.status + ' ' +
-      JSON.stringify(transferStateRes.body))
-  }
-  return transferStateRes.body
+function getTransferState (transfer) {
+  return co(function * () {
+    const transferStateRes = yield request.get(transfer.id + '/state')
+    if (transferStateRes.status >= 400) {
+      throw new Error('Remote error: ' + transferStateRes.status + ' ' +
+        JSON.stringify(transferStateRes.body))
+    }
+    return transferStateRes.body
+  })
 }
+
+exports.setupTransferConditionsAtomic = setupTransferConditionsAtomic
+exports.setupTransferConditionsUniversal = setupTransferConditionsUniversal
+exports.postTransfer = postTransfer
+exports.transferExpiresAt = transferExpiresAt
+exports.getTransferState = getTransferState

@@ -2,11 +2,7 @@
 'use strict'
 const assert = require('assert')
 const nock = require('nock')
-import {
-  getReceiptCondition,
-  getExecutionCondition,
-  getCancellationCondition
-} from '../src/conditionUtils'
+const conditionUtils = require('../src/conditionUtils')
 
 const notary = 'http://notary.example'
 const transfer = {
@@ -15,12 +11,12 @@ const transfer = {
 }
 
 describe('conditionUtils.getReceiptCondition', function () {
-  it('builds a Condition', async function () {
+  it('builds a Condition', function * () {
     const transferNock = nock(transfer.id).get('/state').reply(200, {
       type: 'ed25519-sha512',
       public_key: 1234
     })
-    assert.deepEqual((await getReceiptCondition(transfer, 'executed')),
+    assert.deepEqual((yield conditionUtils.getReceiptCondition(transfer, 'executed')),
       {
         message_hash: 'ZZeLK/FVt4iGMxy6FDohwnFxNBbPbC/2Hf7Y2a9/WLBb/AlmLTpA91lVRmMJLSSLwTgOUsqGTi9EPzlowHdl9Q==',
         signer: 'http://ledger.example',
@@ -36,9 +32,9 @@ describe('conditionUtils.getExecutionCondition', function () {
     it('returns an "and" Condition', function () {
       const receiptCondition = [1]
       assert.deepEqual(
-        getExecutionCondition({
-          notary,
-          receiptCondition,
+        conditionUtils.getExecutionCondition({
+          notary: notary,
+          receiptCondition: receiptCondition,
           caseID: 1234,
           notaryPublicKey: 5678
         }),
@@ -61,7 +57,7 @@ describe('conditionUtils.getExecutionCondition', function () {
     it('returns the receiptCondition', function () {
       const receiptCondition = [1]
       assert.deepEqual(
-        getExecutionCondition({receiptCondition}),
+        conditionUtils.getExecutionCondition({receiptCondition}),
         receiptCondition)
     })
   })
@@ -70,10 +66,10 @@ describe('conditionUtils.getExecutionCondition', function () {
 describe('conditionUtils.getCancellationCondition', function () {
   it('returns an ed25519-sha512 Condition', function () {
     assert.deepEqual(
-      getCancellationCondition({
+      conditionUtils.getCancellationCondition({
         caseID: 1234,
         notaryPublicKey: 5678,
-        notary
+        notary: notary
       }),
       {
         type: 'ed25519-sha512',

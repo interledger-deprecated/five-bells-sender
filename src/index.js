@@ -1,15 +1,12 @@
 'use strict'
+
+const co = require('co')
 const request = require('superagent')
 const Pathfinder = require('five-bells-pathfind').Pathfinder
-
-import * as Payments from './payments'
-import {transferExpiresAt} from './transferUtils'
-import {setupCase, postFulfillmentToNotary} from './notaryUtils'
-import {
-  getReceiptCondition,
-  getExecutionCondition,
-  getCancellationCondition
-} from './conditionUtils'
+const Payments = require('./payments')
+const transferUtils = require('./transferUtils')
+const notaryUtils = require('./notaryUtils')
+const conditionUtils = require('./conditionUtils')
 
 /**
  * Create and execute a transaction.
@@ -31,20 +28,20 @@ import {
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
  */
-export default async function sendPayment (params) {
-  const subpayments = await findPath({
+function sendPayment (params) {
+  return findPath({
     sourceAccount: params.sourceAccount,
     destinationAccount: params.destinationAccount,
     destinationAmount: params.destinationAmount
   })
-  await executePayment(subpayments, {
+  .then(subpayments => executePayment(subpayments, {
     sourceAccount: params.sourceAccount,
     sourcePassword: params.sourcePassword,
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
     destinationMemo: params.destinationMemo,
     receiptCondition: params.receiptCondition
-  })
+  }))
 }
 
 /**
@@ -66,67 +63,71 @@ export default async function sendPayment (params) {
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
  */
-export async function executePayment (_subpayments, params) {
-  const {
-    sourcePassword,
-    sourceAccount,
-    notary,
-    notaryPublicKey
-  } = params
-  const isAtomic = !!notary
-  if (isAtomic && !notaryPublicKey) {
-    throw new Error('Missing required parameter: notaryPublicKey')
-  }
+function executePayment (_subpayments, params) {
+  return co(function * () {
+    const isAtomic = !!params.notary
+    if (isAtomic && !params.notaryPublicKey) {
+      throw new Error('Missing required parameter: notaryPublicKey')
+    }
 
-  let subpayments = Payments.setupTransfers(_subpayments, sourceAccount)
+    let subpayments = Payments.setupTransfers(_subpayments, params.sourceAccount)
 
-  if (params.destinationMemo) {
-    Payments.toFinalTransfer(subpayments).credits[0].memo = params.destinationMemo
-  }
+    if (params.destinationMemo) {
+      Payments.toFinalTransfer(subpayments).credits[0].memo = params.destinationMemo
+    }
 
-  // In universal mode, each transfer executes when the last transfer in the chain
-  // has executed. The final one in the chain executes when all are prepared.
-  //
-  // In atomic mode, all transfers execute when the notary has confirmation
-  // that all of the transfers are prepared.
-  const receiptConditionState = isAtomic ? 'prepared' : 'executed'
-  const receiptCondition = params.receiptCondition ||
-    (await getReceiptCondition(
-      Payments.toFinalTransfer(subpayments),
-      receiptConditionState))
+    // In universal mode, each transfer executes when the last transfer in the chain
+    // has executed. The final one in the chain executes when all are prepared.
+    //
+    // In atomic mode, all transfers execute when the notary has confirmation
+    // that all of the transfers are prepared.
+    const receiptConditionState = isAtomic ? 'prepared' : 'executed'
+    const receiptCondition = params.receiptCondition ||
+      (yield conditionUtils.getReceiptCondition(
+        Payments.toFinalTransfer(subpayments),
+        receiptConditionState))
 
-  const caseID = isAtomic && (await setupCase({
-    notary,
-    receiptCondition,
-    payments: subpayments,
-    expiresAt: transferExpiresAt(Date.now(), Payments.toFirstTransfer(subpayments))
-  }))
+    const caseID = isAtomic && (yield notaryUtils.setupCase({
+      notary: params.notary,
+      receiptCondition: receiptCondition,
+      payments: subpayments,
+      expiresAt: transferUtils.transferExpiresAt(Date.now(), Payments.toFirstTransfer(subpayments))
+    }))
 
-  const conditionParams = {receiptCondition, caseID, notary, notaryPublicKey}
-  const executionCondition = getExecutionCondition(conditionParams)
-  const cancellationCondition = isAtomic && getCancellationCondition(conditionParams)
+    const conditionParams = {
+      receiptCondition: receiptCondition,
+      caseID: caseID,
+      notary: params.notary,
+      notaryPublicKey: params.notaryPublicKey
+    }
+    const executionCondition = conditionUtils.getExecutionCondition(conditionParams)
+    const cancellationCondition = isAtomic && conditionUtils.getCancellationCondition(conditionParams)
 
-  subpayments = Payments.setupConditions(subpayments, {
-    isAtomic,
-    executionCondition,
-    cancellationCondition,
-    caseID
+    subpayments = Payments.setupConditions(subpayments, {
+      isAtomic,
+      executionCondition,
+      cancellationCondition,
+      caseID
+    })
+
+    // Proposal.
+    const sourceUsername = (yield getAccount(params.sourceAccount)).name
+    subpayments = yield Payments.postTransfers(subpayments, {
+      sourceUsername: sourceUsername,
+      sourcePassword: params.sourcePassword
+    })
+
+    // Preparation, execution.
+    subpayments = yield Payments.postPayments(subpayments)
+
+    // Execution (atomic)
+    // If a custom receiptCondition is used, it is the recipient's
+    // job to post fulfillment.
+    if (isAtomic && !params.receiptCondition) {
+      yield notaryUtils.postFulfillmentToNotary(Payments.toFinalTransfer(subpayments), caseID)
+    }
+    return subpayments
   })
-
-  // Proposal.
-  const sourceUsername = (await getAccount(sourceAccount)).name
-  subpayments = await Payments.postTransfers(subpayments, {sourceUsername, sourcePassword})
-
-  // Preparation, execution.
-  subpayments = await Payments.postPayments(subpayments)
-
-  // Execution (atomic)
-  // If a custom receiptCondition is used, it is the recipient's
-  // job to post fulfillment.
-  if (isAtomic && !params.receiptCondition) {
-    await postFulfillmentToNotary(Payments.toFinalTransfer(subpayments), caseID)
-  }
-  return subpayments
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -140,22 +141,24 @@ export async function executePayment (_subpayments, params) {
  * @param {String} params.destinationAmount
  * @returns {Promise} an Array of subpayments
  */
-export async function findPath (params) {
-  const ledgers = await Promise.all([
-    getAccountLedger(params.sourceAccount),
-    getAccountLedger(params.destinationAccount)
-  ])
+function findPath (params) {
+  return co(function * () {
+    const ledgers = yield Promise.all([
+      getAccountLedger(params.sourceAccount),
+      getAccountLedger(params.destinationAccount)
+    ])
 
-  // TODO cache pathfinder so that it doesn't have to re-crawl for every payment
-  const pathfinder = new Pathfinder({
-    crawler: { initialLedgers: ledgers }
-  })
-  await pathfinder.crawl()
-  return await pathfinder.findPath({
-    sourceLedger: ledgers[0],
-    destinationLedger: ledgers[1],
-    destinationAmount: params.destinationAmount,
-    destinationAccount: params.destinationAccount
+    // TODO cache pathfinder so that it doesn't have to re-crawl for every payment
+    const pathfinder = new Pathfinder({
+      crawler: { initialLedgers: ledgers }
+    })
+    yield pathfinder.crawl()
+    return pathfinder.findPath({
+      sourceLedger: ledgers[0],
+      destinationLedger: ledgers[1],
+      destinationAmount: params.destinationAmount,
+      destinationAccount: params.destinationAccount
+    })
   })
 }
 
@@ -163,18 +166,25 @@ export async function findPath (params) {
  * @param {URI} account
  * @returns {Promise<Account>}
  */
-async function getAccount (account) {
-  const res = await request.get(account)
-  if (res.statusCode !== 200) {
-    throw new Error('Unable to identify ledger from account: ' + account)
-  }
-  return res.body
+function getAccount (account) {
+  return co(function * () {
+    const res = yield request.get(account)
+    if (res.statusCode !== 200) {
+      throw new Error('Unable to identify ledger from account: ' + account)
+    }
+    return res.body
+  })
 }
 
 /**
  * @param {URI} account
  * @returns {Promise<URI>}
  */
-async function getAccountLedger (account) {
-  return (await getAccount(account)).ledger
+function getAccountLedger (account) {
+  return getAccount(account).then(account => account.ledger)
 }
+
+module.exports = sendPayment
+module.exports.default = sendPayment
+module.exports.executePayment = executePayment
+module.exports.findPath = findPath

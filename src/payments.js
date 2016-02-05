@@ -1,19 +1,16 @@
 'use strict'
+
+const co = require('co')
 const request = require('superagent')
 const uuid = require('uuid4')
-
-import {
-  setupTransferConditionsAtomic,
-  setupTransferConditionsUniversal,
-  postTransfer
-} from './transferUtils'
+const transferUtils = require('./transferUtils')
 
 /**
  * @param {[Payment]} payments
  * @param {URI} sourceAccount
  * @returns {[Payment]}
  */
-export function setupTransfers (payments, sourceAccount) {
+function setupTransfers (payments, sourceAccount) {
   // The forEach only modifies `source_transfers` because:
   //   payment[n-1].destination_transfers == payment[n].source_transfers
   // The final transfer is updated at the end.
@@ -60,8 +57,7 @@ function validateOneToOnePayment (payment) {
  * @param {URI} params.caseID (iff isAtomic)
  * @returns {[Payment]}
  */
-export function setupConditions (payments, params) {
-  const {isAtomic, executionCondition, cancellationCondition, caseID} = params
+function setupConditions (payments, params) {
   const transfers = toTransfers(payments)
   const finalTransfer = transfers[transfers.length - 1]
   // Use one Date.now() as the base of all expiries so that when a ms passes
@@ -71,11 +67,19 @@ export function setupConditions (payments, params) {
 
   // Add conditions/expirations to all transfers.
   for (let transfer of transfers) {
-    if (isAtomic) {
-      setupTransferConditionsAtomic(transfer, {executionCondition, cancellationCondition, caseID})
+    if (params.isAtomic) {
+      transferUtils.setupTransferConditionsAtomic(transfer, {
+        executionCondition: params.executionCondition,
+        cancellationCondition: params.cancellationCondition,
+        caseID: params.caseID
+      })
     } else {
       const isFinalTransfer = transfer === finalTransfer
-      setupTransferConditionsUniversal(transfer, {executionCondition, now, isFinalTransfer})
+      transferUtils.setupTransferConditionsUniversal(transfer, {
+        executionCondition: params.executionCondition,
+        now: now,
+        isFinalTransfer: isFinalTransfer
+      })
     }
   }
 
@@ -89,7 +93,7 @@ export function setupConditions (payments, params) {
  * @param {[Payment]} payments
  * @returns {[Transfers]}
  */
-export function toTransfers (payments) {
+function toTransfers (payments) {
   return payments.map(function (payment) {
     return payment.source_transfers[0]
   }).concat([
@@ -101,7 +105,7 @@ export function toTransfers (payments) {
  * @param {[Payment]} payments
  * @returns {Transfer}
  */
-export function toFirstTransfer (payments) {
+function toFirstTransfer (payments) {
   return payments[0].source_transfers[0]
 }
 
@@ -109,7 +113,7 @@ export function toFirstTransfer (payments) {
  * @param {[Payment]} payments
  * @returns {Transfer}
  */
-export function toFinalTransfer (payments) {
+function toFinalTransfer (payments) {
   return payments[payments.length - 1].destination_transfers[0]
 }
 
@@ -140,50 +144,64 @@ function replaceTransferInList (transfers, updatedTransfer) {
  * @param {String} params.sourcePassword
  * @returns {Promise<[Payment]>}
  */
-export async function postTransfers (payments, params) {
-  const transfers = toTransfers(payments)
-  // TODO Theoretically we'd need to keep track of the signed responses
-  // Prepare first transfer
-  const firstTransfer = transfers[0]
-  firstTransfer.state = await postTransfer(firstTransfer, {
-    username: params.sourceUsername,
-    password: params.sourcePassword
-  })
+function postTransfers (payments, params) {
+  return co(function * () {
+    const transfers = toTransfers(payments)
+    // TODO Theoretically we'd need to keep track of the signed responses
+    // Prepare first transfer
+    const firstTransfer = transfers[0]
+    firstTransfer.state = yield transferUtils.postTransfer(firstTransfer, {
+      username: params.sourceUsername,
+      password: params.sourcePassword
+    })
 
-  // Propose other transfers
-  // TODO can these be done in parallel?
-  for (let transfer of transfers.slice(1)) {
-    // TODO: Also keep copy of state signature
-    // Update transfer state
-    transfer.state = await postTransfer(transfer)
-  }
-  return payments
+    // Propose other transfers
+    // TODO can these be done in parallel?
+    for (let transfer of transfers.slice(1)) {
+      // TODO: Also keep copy of state signature
+      // Update transfer state
+      transfer.state = yield transferUtils.postTransfer(transfer)
+    }
+    return payments
+  })
 }
 
 /**
  * @param {[Payment]} payments
  * @return {Promise<[Payment]>}
  */
-export async function postPayments (payments) {
-  for (let i = 0; i < payments.length; i++) {
-    const payment = payments[i]
-    const updatedDestinationTransfer = (await postPayment(payment)).destination_transfers[0]
-    replaceTransfers(payments, updatedDestinationTransfer)
-  }
-  return payments
+function postPayments (payments) {
+  return co(function * () {
+    for (let i = 0; i < payments.length; i++) {
+      const payment = payments[i]
+      const updatedDestinationTransfer = (yield postPayment(payment)).destination_transfers[0]
+      replaceTransfers(payments, updatedDestinationTransfer)
+    }
+    return payments
+  })
 }
 
 /**
  * @param {Payment} payment
  * @return {Promise<Object>} the PUT response body
  */
-async function postPayment (payment) {
-  const paymentRes = await request
-    .put(payment.id)
-    .send(payment)
-  if (paymentRes.status >= 400) {
-    throw new Error('Remote error: ' + paymentRes.status + ' ' +
-      JSON.stringify(paymentRes.body))
-  }
-  return paymentRes.body
+function postPayment (payment) {
+  return co(function * () {
+    const paymentRes = yield request
+      .put(payment.id)
+      .send(payment)
+    if (paymentRes.status >= 400) {
+      throw new Error('Remote error: ' + paymentRes.status + ' ' +
+        JSON.stringify(paymentRes.body))
+    }
+    return paymentRes.body
+  })
 }
+
+exports.setupTransfers = setupTransfers
+exports.setupConditions = setupConditions
+exports.toTransfers = toTransfers
+exports.toFirstTransfer = toFirstTransfer
+exports.toFinalTransfer = toFinalTransfer
+exports.postTransfers = postTransfers
+exports.postPayments = postPayments

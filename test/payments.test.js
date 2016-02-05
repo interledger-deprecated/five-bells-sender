@@ -2,7 +2,7 @@
 'use strict'
 const assert = require('assert')
 const nock = require('nock')
-import * as Payments from '../src/payments'
+const Payments = require('../src/payments')
 
 beforeEach(function () {
   this.payments = clone(require('./fixtures/payments.json'))
@@ -111,7 +111,7 @@ describe('Payment.toFinalTransfer', function () {
 })
 
 describe('Payments.postTransfers', function () {
-  it('sends username+password to the first PUT, and updates the states', async function () {
+  it('sends username+password to the first PUT, and updates the states', function * () {
     const transfers = Payments.toTransfers(this.payments)
     const transfer1Nock = nock(transfers[0].id)
       .put('', transfers[0])
@@ -124,7 +124,7 @@ describe('Payments.postTransfers', function () {
       .put('', transfers[2])
       .reply(200, { state: 'STATE3' })
 
-    await Payments.postTransfers(this.payments, {
+    yield Payments.postTransfers(this.payments, {
       sourceUsername: 'foo',
       sourcePassword: 'bar'
     })
@@ -139,7 +139,7 @@ describe('Payments.postTransfers', function () {
 })
 
 describe('Payments.postPayments', function () {
-  it('updates the transfers in the payment list', async function () {
+  it('updates the transfers in the payment list', function * () {
     const transfers = Payments.toTransfers(this.payments)
     const transfer1 = clone(transfers[1])
     const transfer2 = clone(transfers[2])
@@ -150,7 +150,7 @@ describe('Payments.postPayments', function () {
     const payment2Nock = nock(this.payments[1].id)
       .put('', this.payments[1])
       .reply(200, {destination_transfers: [transfer2]})
-    const payments = await Payments.postPayments(this.payments)
+    const payments = yield Payments.postPayments(this.payments)
     assert.deepEqual(payments[0].destination_transfers, [transfer1])
     assert.deepEqual(payments[1].source_transfers, [transfer1])
     assert.deepEqual(payments[1].destination_transfers, [transfer2])
@@ -158,10 +158,10 @@ describe('Payments.postPayments', function () {
     payment2Nock.done()
   })
 
-  it('throws on 400', async function () {
+  it('throws on 400', function * () {
     const payment1Nock = nock(this.payments[0].id).put('').reply(400)
     try {
-      await Payments.postPayments(this.payments)
+      yield Payments.postPayments(this.payments)
     } catch (err) {
       assert.equal(err.status, 400)
       payment1Nock.done()

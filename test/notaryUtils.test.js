@@ -2,20 +2,17 @@
 'use strict'
 const assert = require('assert')
 const nock = require('nock')
-import {
-  setupCase,
-  postFulfillmentToNotary
-} from '../src/notaryUtils'
+const notaryUtils = require('../src/notaryUtils')
 
 const payments = require('./fixtures/payments.json')
 
 const notary = 'http://notary.example'
 
 describe('notaryUtils.setupCase', function () {
-  it('throws on 400', async function () {
+  it('throws on 400', function * () {
     const caseNock = nock(notary).put(/\/cases\/[\w-]+/).reply(400)
     try {
-      await setupCase({
+      yield notaryUtils.setupCase({
         notary,
         payments,
         receiptCondition: [1],
@@ -29,7 +26,7 @@ describe('notaryUtils.setupCase', function () {
     assert(false)
   })
 
-  it('returns the case ID on 200', async function () {
+  it('returns the case ID on 200', function * () {
     const caseNock = nock(notary).put(/\/cases\/[\w-]+/, {
       id: /^http:\/\/notary\.example\/cases\/[\w-]+$/,
       state: 'proposed',
@@ -43,7 +40,7 @@ describe('notaryUtils.setupCase', function () {
       ]
     }).reply(204)
 
-    const caseID = await setupCase({
+    const caseID = yield notaryUtils.setupCase({
       notary,
       payments,
       receiptCondition: [1],
@@ -59,11 +56,11 @@ describe('notaryUtils.postFulfillmentToNotary', function () {
   const transfer = {id: 'http://ledger.example/transfers/1'}
   const caseID = notary + '/cases/123'
 
-  it('throws on /fulfillment 400', async function () {
+  it('throws on /fulfillment 400', function * () {
     const stateNock = nock(transfer.id).get('/state').reply(200, {type: 'ed25519-sha512'})
     const fulfillNock = nock(caseID).put('/fulfillment').reply(400)
     try {
-      await postFulfillmentToNotary(transfer, caseID)
+      yield notaryUtils.postFulfillmentToNotary(transfer, caseID)
     } catch (err) {
       assert.equal(err.status, 400)
       stateNock.done()
@@ -73,7 +70,7 @@ describe('notaryUtils.postFulfillmentToNotary', function () {
     assert(false)
   })
 
-  it('posts the type and signature', async function () {
+  it('posts the type and signature', function * () {
     const stateNock = nock(transfer.id).get('/state').reply(200, {
       type: 'ed25519-sha512',
       signature: 'abcdefg'
@@ -82,7 +79,7 @@ describe('notaryUtils.postFulfillmentToNotary', function () {
       type: 'ed25519-sha512',
       signature: 'abcdefg'
     }).reply(204)
-    await postFulfillmentToNotary(transfer, caseID)
+    yield notaryUtils.postFulfillmentToNotary(transfer, caseID)
     stateNock.done()
     fulfillNock.done()
   })
