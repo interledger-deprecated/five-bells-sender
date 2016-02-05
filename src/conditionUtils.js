@@ -1,26 +1,27 @@
 'use strict'
+
 const crypto = require('crypto')
 const stringifyJSON = require('canonical-json')
 const makeCaseAttestation = require('five-bells-shared/utils/makeCaseAttestation')
-import {getTransferState} from './transferUtils'
+const getTransferState = require('./transferUtils').getTransferState
 
 /**
  * @param {Transfer} finalTransfer
  * @param {TransferState} state "prepared" | "executed"
  * @returns {Promise<Condition>}
  */
-export async function getReceiptCondition (finalTransfer, state) {
-  const finalTransferState = await getTransferState(finalTransfer)
+function getReceiptCondition (finalTransfer, state) {
   // Execution condition is the final transfer in the chain
-  return {
-    message_hash: hashJSON({
-      id: finalTransfer.id,
-      state: state
-    }),
-    signer: finalTransfer.ledger,
-    public_key: finalTransferState.public_key,
-    type: finalTransferState.type
-  }
+  return getTransferState(finalTransfer)
+    .then(finalTransferState => ({
+      message_hash: hashJSON({
+        id: finalTransfer.id,
+        state: state
+      }),
+      signer: finalTransfer.ledger,
+      public_key: finalTransferState.public_key,
+      type: finalTransferState.type
+    }))
 }
 
 /**
@@ -32,7 +33,7 @@ export async function getReceiptCondition (finalTransfer, state) {
  * @param {String} params.notaryPublicKey (required iff params.notary)
  * @returns {Condition}
  */
-export function getExecutionCondition (params) {
+function getExecutionCondition (params) {
   params.state = 'executed'
   return params.notary ? {
     type: 'and',
@@ -50,7 +51,7 @@ export function getExecutionCondition (params) {
  * @param {String} params.notaryPublicKey
  * @returns {Ed25519_Sha512_Condition}
  */
-export function getCancellationCondition (params) {
+function getCancellationCondition (params) {
   params.state = 'cancelled'
   return getNotaryCondition(params)
 }
@@ -83,3 +84,7 @@ function hashJSON (object) {
 function sha512 (str) {
   return crypto.createHash('sha512').update(str).digest('base64')
 }
+
+exports.getReceiptCondition = getReceiptCondition
+exports.getExecutionCondition = getExecutionCondition
+exports.getCancellationCondition = getCancellationCondition

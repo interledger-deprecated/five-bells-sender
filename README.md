@@ -11,7 +11,7 @@
 
 You can see the visualization in action as part of the [`five-bells-demo`](https://github.com/interledger/five-bells-demo)!
 
-# Example: Universal Mode
+## Example: Universal Mode
 
 ``` js
     send({
@@ -24,7 +24,7 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
     })
 ```
 
-# Example: Atomic Mode
+## Example: Atomic Mode
 
 ``` js
     send({
@@ -40,3 +40,6 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
     })
 ```
 
+## Browser Support
+
+This library can be compiled with [Babel](https://babeljs.io/) using the command `npm run build`. The compiled files will be in the `babel/` folder.
