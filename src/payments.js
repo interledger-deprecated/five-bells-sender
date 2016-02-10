@@ -10,7 +10,7 @@ const transferUtils = require('./transferUtils')
  * @param {URI} sourceAccount
  * @returns {[Payment]}
  */
-function setupTransfers (payments, sourceAccount) {
+function setupTransfers (payments, sourceAccount, destinationAccount) {
   // The forEach only modifies `source_transfers` because:
   //   payment[n-1].destination_transfers == payment[n].source_transfers
   // The final transfer is updated at the end.
@@ -35,6 +35,7 @@ function setupTransfers (payments, sourceAccount) {
   const finalTransfer = finalPayment.destination_transfers[0]
   finalTransfer.id = finalTransfer.ledger + '/transfers/' + uuid()
   finalTransfer.additional_info = {part_of_payment: finalPayment.id}
+  finalTransfer.credits[0].account = destinationAccount
   return payments
 }
 

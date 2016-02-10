@@ -17,7 +17,9 @@ const conditionUtils = require('./conditionUtils')
  * @param {URI} params.sourceAccount - Account URI
  * @param {String} params.sourcePassword
  * @param {URI} params.destinationAccount - Account URI
- * @param {String} params.destinationAmount - Amount (a string, so as not to lose precision)
+ * Exactly one of the following:
+ * @param {String} params.sourceAmount - Amount (a string, so as not to lose precision)
+ * @param {String} params.destinationAmount - Amount
  *
  * Required for Atomic mode only:
  * @param {URI} params.notary - Notary URI (if provided, use Atomic mode)
@@ -32,11 +34,13 @@ function sendPayment (params) {
   return findPath({
     sourceAccount: params.sourceAccount,
     destinationAccount: params.destinationAccount,
+    sourceAmount: params.sourceAmount,
     destinationAmount: params.destinationAmount
   })
   .then(subpayments => executePayment(subpayments, {
     sourceAccount: params.sourceAccount,
     sourcePassword: params.sourcePassword,
+    destinationAccount: params.destinationAccount,
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
     destinationMemo: params.destinationMemo,
@@ -52,6 +56,7 @@ function sendPayment (params) {
  *
  * Required for both modes:
  * @param {URI} params.sourceAccount - Account URI
+ * @param {URI} params.destinationAccount
  * @param {String} params.sourcePassword
  *
  * Required for Atomic mode only:
@@ -70,7 +75,9 @@ function executePayment (_subpayments, params) {
       throw new Error('Missing required parameter: notaryPublicKey')
     }
 
-    let subpayments = Payments.setupTransfers(_subpayments, params.sourceAccount)
+    let subpayments = Payments.setupTransfers(_subpayments,
+      params.sourceAccount,
+      params.destinationAccount)
 
     if (params.destinationMemo) {
       Payments.toFinalTransfer(subpayments).credits[0].memo = params.destinationMemo
@@ -138,6 +145,8 @@ function executePayment (_subpayments, params) {
  * @param {Object} params
  * @param {String} params.sourceAccount
  * @param {String} params.destinationAccount
+ * Exactly one of the following:
+ * @param {String} params.sourceAmount
  * @param {String} params.destinationAmount
  * @returns {Promise} an Array of subpayments
  */
@@ -156,6 +165,7 @@ function findPath (params) {
     return pathfinder.findPath({
       sourceLedger: ledgers[0],
       destinationLedger: ledgers[1],
+      sourceAmount: params.sourceAmount,
       destinationAmount: params.destinationAmount,
       destinationAccount: params.destinationAccount
     })
