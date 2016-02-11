@@ -4,6 +4,9 @@ const assert = require('assert')
 const nock = require('nock')
 const Payments = require('../src/payments')
 
+const alice = 'http://usd-ledger.example/accounts/alice'
+const bob = 'http://eur-ledger.example/accounts/bob'
+
 beforeEach(function () {
   this.payments = clone(require('./fixtures/payments.json'))
   this.quote = clone(require('./fixtures/quote.json'))
@@ -14,7 +17,7 @@ beforeEach(function () {
 describe('Payments.setupTransfers', function () {
   it('throws on a one-to-many payment', function () {
     assert.throws(function () {
-      Payments.setupTransfers(this.quoteOneToMany, 'http://usd-ledger.example/accounts/alice')
+      Payments.setupTransfers(this.quoteOneToMany, alice, bob)
     }.bind(this), function (err) {
       return err.message === 'five-bells-sender only supports one-to-one payments'
     })
@@ -26,14 +29,14 @@ describe('Payments.setupTransfers', function () {
         id: this.quoteOneToMany[0].id,
         source_transfers: this.quoteOneToMany[0].destination_transfers,
         destination_transfers: this.quoteOneToMany[0].source_transfers
-      }], 'http://usd-ledger.example/accounts/alice')
+      }], alice, bob)
     }.bind(this), function (err) {
       return err.message === 'five-bells-sender only supports one-to-one payments'
     })
   })
 
   it('sets up a valid payment', function () {
-    const payment = Payments.setupTransfers(this.quote, 'http://usd-ledger.example/accounts/alice')[0]
+    const payment = Payments.setupTransfers(this.quote, alice, bob)[0]
     assert(isTransferID('usd', payment.source_transfers[0].id))
     assert(isTransferID('eur', payment.destination_transfers[0].id))
     assert.equal(
@@ -42,16 +45,13 @@ describe('Payments.setupTransfers', function () {
     assert.equal(
       payment.destination_transfers[0].additional_info.part_of_payment,
       payment.id)
-    assert.equal(
-      payment.source_transfers[0].debits[0].account,
-      'http://usd-ledger.example/accounts/alice')
+    assert.equal(payment.source_transfers[0].debits[0].account, alice)
+    assert.equal(payment.destination_transfers[0].credits[0].account, bob)
   })
 
   it('setups up valid payments', function () {
-    const payments = Payments.setupTransfers(this.quotes, 'http://usd-ledger.example/accounts/alice')
-    assert.equal(
-      payments[0].source_transfers[0].debits[0].account,
-      'http://usd-ledger.example/accounts/alice')
+    const payments = Payments.setupTransfers(this.quotes, alice, bob)
+    assert.equal(payments[0].source_transfers[0].debits[0].account, alice)
     assert.equal(
       payments[0].destination_transfers[0],
       payments[1].source_transfers[0])
@@ -63,7 +63,7 @@ describe('Payments.setupTransfers', function () {
 
 describe('Payments.setupConditions', function () {
   it('authorizes the first debit', function () {
-    const template = Payments.setupTransfers(this.quotes, 'http://usd-ledger.example/accounts/alice')
+    const template = Payments.setupTransfers(this.quotes, alice, bob)
     const payments = Payments.setupConditions(template, {
       isAtomic: false,
       executionCondition: [0]

@@ -24,6 +24,19 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
     })
 ```
 
+## Example: Universal Mode with fixed source amount
+
+``` js
+    send({
+      sourceAccount:      'http://localhost:3001/accounts/alice',
+      sourcePassword:     'alice',
+      destinationAccount: 'http://localhost:3002/accounts/alice',
+      sourceAmount:       '1',
+    }).then(function() {
+      console.log('success')
+    })
+```
+
 ## Example: Atomic Mode
 
 ``` js
