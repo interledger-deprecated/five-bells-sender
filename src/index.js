@@ -27,6 +27,7 @@ const conditionUtils = require('./conditionUtils')
  *
  * Other:
  * @param {String} params.destinationMemo
+ * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
  */
@@ -44,6 +45,7 @@ function sendPayment (params) {
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
     destinationMemo: params.destinationMemo,
+    additionalInfo: params.additionalInfo,
     receiptCondition: params.receiptCondition
   }))
 }
@@ -65,6 +67,7 @@ function sendPayment (params) {
  *
  * Other:
  * @param {String} params.destinationMemo
+ * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
  */
@@ -77,7 +80,8 @@ function executePayment (_subpayments, params) {
 
     let subpayments = Payments.setupTransfers(_subpayments,
       params.sourceAccount,
-      params.destinationAccount)
+      params.destinationAccount,
+      params.additionalInfo)
 
     if (params.destinationMemo) {
       Payments.toFinalTransfer(subpayments).credits[0].memo = params.destinationMemo

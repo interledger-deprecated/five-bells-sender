@@ -10,7 +10,7 @@ const transferUtils = require('./transferUtils')
  * @param {URI} sourceAccount
  * @returns {[Payment]}
  */
-function setupTransfers (payments, sourceAccount, destinationAccount) {
+function setupTransfers (payments, sourceAccount, destinationAccount, additionalInfo) {
   // The forEach only modifies `source_transfers` because:
   //   payment[n-1].destination_transfers == payment[n].source_transfers
   // The final transfer is updated at the end.
@@ -18,7 +18,9 @@ function setupTransfers (payments, sourceAccount, destinationAccount) {
     validateOneToOnePayment(payment)
     const transfer = payment.source_transfers[0]
     transfer.id = transfer.ledger + '/transfers/' + uuid()
-    transfer.additional_info = {part_of_payment: payment.id}
+    transfer.additional_info = additionalInfo || {}
+    transfer.additional_info.part_of_payment = payment.id
+
     // Add start and endpoints in payment chain from user-provided payment object
     if (i === 0) {
       transfer.debits[0].account = sourceAccount
@@ -34,7 +36,8 @@ function setupTransfers (payments, sourceAccount, destinationAccount) {
   const finalPayment = payments[payments.length - 1]
   const finalTransfer = finalPayment.destination_transfers[0]
   finalTransfer.id = finalTransfer.ledger + '/transfers/' + uuid()
-  finalTransfer.additional_info = {part_of_payment: finalPayment.id}
+  finalTransfer.additional_info = additionalInfo || {}
+  finalTransfer.additional_info.part_of_payment = finalPayment.id
   finalTransfer.credits[0].account = destinationAccount
   return payments
 }
