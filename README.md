@@ -19,6 +19,7 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
       sourcePassword:     'alice',
       destinationAccount: 'http://localhost:3002/accounts/alice',
       destinationAmount:  '1',
+      //additionalInfo:   { sourceAccount: accountUri }
     }).then(function() {
       console.log('success')
     })
@@ -32,6 +33,7 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
       sourcePassword:     'alice',
       destinationAccount: 'http://localhost:3002/accounts/alice',
       sourceAmount:       '1',
+      //additionalInfo:   { sourceAccount: accountUri }
     }).then(function() {
       console.log('success')
     })
@@ -48,6 +50,7 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
       notary:             'http://localhost:6001',
       notaryPublicKey:    'QD/UBKyptEXcu6mZThsfnE/2ZZGsrpokKqaLMUrTUqo=',
       //receiptCondition: { message_hash, signer, public_key, type },
+      //additionalInfo:   { sourceAccount: accountUri }
     }).then(function() {
       console.log('success')
     })
