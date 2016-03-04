@@ -13,7 +13,7 @@ const getTransferState = require('./transferUtils').getTransferState
 function getReceiptCondition (finalTransfer, state) {
   // Execution condition is the final transfer in the chain
   return getTransferState(finalTransfer)
-    .then(finalTransferState => ({
+    .then((finalTransferState) => ({
       message_hash: hashJSON({
         id: finalTransfer.id,
         state: state
