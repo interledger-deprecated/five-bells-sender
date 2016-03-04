@@ -110,34 +110,6 @@ describe('Payment.toFinalTransfer', function () {
   })
 })
 
-describe('Payments.postTransfers', function () {
-  it('sends username+password to the first PUT, and updates the states', function * () {
-    const transfers = Payments.toTransfers(this.payments)
-    const transfer1Nock = nock(transfers[0].id)
-      .put('', transfers[0])
-      .basicAuth({user: 'foo', pass: 'bar'})
-      .reply(200, { state: 'STATE1' })
-    const transfer2Nock = nock(transfers[1].id)
-      .put('', transfers[1])
-      .reply(200, { state: 'STATE2' })
-    const transfer3Nock = nock(transfers[2].id)
-      .put('', transfers[2])
-      .reply(200, { state: 'STATE3' })
-
-    yield Payments.postTransfers(this.payments, {
-      sourceUsername: 'foo',
-      sourcePassword: 'bar'
-    })
-
-    assert.equal(transfers[0].state, 'STATE1')
-    assert.equal(transfers[1].state, 'STATE2')
-    assert.equal(transfers[2].state, 'STATE3')
-    transfer1Nock.done()
-    transfer2Nock.done()
-    transfer3Nock.done()
-  })
-})
-
 describe('Payments.postPayments', function () {
   it('updates the transfers in the payment list', function * () {
     const transfers = Payments.toTransfers(this.payments)

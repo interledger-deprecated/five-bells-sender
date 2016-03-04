@@ -117,11 +117,12 @@ function executePayment (_subpayments, params) {
       caseID
     })
 
-    // Proposal.
+    // Prepare the first transfer.
     const sourceUsername = (yield getAccount(params.sourceAccount)).name
-    subpayments = yield Payments.postTransfers(subpayments, {
-      sourceUsername: sourceUsername,
-      sourcePassword: params.sourcePassword
+    const firstTransfer = Payments.toFirstTransfer(subpayments)
+    firstTransfer.state = yield transferUtils.postTransfer(firstTransfer, {
+      username: sourceUsername,
+      password: params.sourcePassword
     })
 
     // Preparation, execution.
