@@ -141,36 +141,6 @@ function replaceTransferInList (transfers, updatedTransfer) {
 }
 
 /**
- * Propose + Prepare transfers
- * @param {[Payment]} payments
- * @param {Object} params
- * @param {String} params.sourceUsername
- * @param {String} params.sourcePassword
- * @returns {Promise<[Payment]>}
- */
-function postTransfers (payments, params) {
-  return co(function * () {
-    const transfers = toTransfers(payments)
-    // TODO Theoretically we'd need to keep track of the signed responses
-    // Prepare first transfer
-    const firstTransfer = transfers[0]
-    firstTransfer.state = yield transferUtils.postTransfer(firstTransfer, {
-      username: params.sourceUsername,
-      password: params.sourcePassword
-    })
-
-    // Propose other transfers
-    // TODO can these be done in parallel?
-    for (let transfer of transfers.slice(1)) {
-      // TODO: Also keep copy of state signature
-      // Update transfer state
-      transfer.state = yield transferUtils.postTransfer(transfer)
-    }
-    return payments
-  })
-}
-
-/**
  * @param {[Payment]} payments
  * @return {Promise<[Payment]>}
  */
@@ -207,5 +177,4 @@ exports.setupConditions = setupConditions
 exports.toTransfers = toTransfers
 exports.toFirstTransfer = toFirstTransfer
 exports.toFinalTransfer = toFinalTransfer
-exports.postTransfers = postTransfers
 exports.postPayments = postPayments
