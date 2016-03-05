@@ -27,8 +27,10 @@
   "dependencies": {
     "canonical-json": "0.0.4",
     "co": "^4.6.0",
+    "co-request": "^1.0.0",
     "five-bells-pathfind": "~4.3.0",
     "five-bells-shared": "~8.10.0",
+    "lodash": "^4.6.1",
     "superagent": "^1.5.0",
     "uuid4": "^1.0.0"
   },
