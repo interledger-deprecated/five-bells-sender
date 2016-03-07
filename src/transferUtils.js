@@ -55,7 +55,8 @@ function * _request (options, auth) {
   if (res.statusCode >= 400) {
     const error = new Error('Remote error: ' + res.statusCode + ' ' +
         JSON.stringify(res.body || ''))
-    error.status = 400
+    error.status = res.statusCode
+    error.response = res
     throw error
   }
 
