@@ -38,7 +38,7 @@ function sendPayment (params) {
     sourceAmount: params.sourceAmount,
     destinationAmount: params.destinationAmount
   })
-  .then(subpayments => executePayment(subpayments, {
+  .then((subpayments) => executePayment(subpayments, {
     sourceAccount: params.sourceAccount,
     sourcePassword: params.sourcePassword,
     destinationAccount: params.destinationAccount,
@@ -196,7 +196,7 @@ function getAccount (account) {
  * @returns {Promise<URI>}
  */
 function getAccountLedger (account) {
-  return getAccount(account).then(account => account.ledger)
+  return getAccount(account).then((account) => account.ledger)
 }
 
 module.exports = sendPayment
