@@ -16,10 +16,15 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
 ``` js
     send({
       sourceAccount:      'http://localhost:3001/accounts/alice',
+      // Using Basic-Auth
       sourcePassword:     'alice',
+      // Using TLS Client Certificate Authentication
+      sourceKey:          fs.readFileSync('./key.pem'),
+      sourceCert:         fs.readFileSync('./cert.pem'),
       destinationAccount: 'http://localhost:3002/accounts/alice',
       destinationAmount:  '1',
-      //additionalInfo:   { sourceAccount: accountUri }
+      //additionalInfo:   { sourceAccount: accountUri },
+      //ca:               fs.readFileSYnc('./ca.pem')
     }).then(function() {
       console.log('success')
     })
@@ -30,11 +35,16 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
 ``` js
     send({
       sourceAccount:      'http://localhost:3001/accounts/alice',
+      // Using Basic-Auth
       sourcePassword:     'alice',
+      // Using TLS Client Certificate Authentication
+      sourceKey:           fs.readFileSync('./key.pem'),
+      sourceCert:          fs.readFileSync('./cert.pem'),
       destinationAccount: 'http://localhost:3002/accounts/alice',
       sourceAmount:       '1',
-      //additionalInfo:   { sourceAccount: accountUri }
-    }).then(function() {
+      //additionalInfo:   { sourceAccount: accountUri },
+      //ca:               fs.readFileSYnc('./ca.pem')
+}).then(function() {
       console.log('success')
     })
 ```
@@ -44,13 +54,18 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
 ``` js
     send({
       sourceAccount:      'http://localhost:3001/accounts/alice',
+      // Using Basic-Auth
       sourcePassword:     'alice',
+      // Using TLS Client Certificate Authentication
+      sourceKey:          fs.readFileSync('./key.pem'),
+      sourceCert:          fs.readFileSync('./cert.pem'),
       destinationAccount: 'http://localhost:3002/accounts/bob',
       destinationAmount:  '1',
       notary:             'http://localhost:6001',
       notaryPublicKey:    'QD/UBKyptEXcu6mZThsfnE/2ZZGsrpokKqaLMUrTUqo=',
       //receiptCondition: { message_hash, signer, public_key, type },
       //additionalInfo:   { sourceAccount: accountUri }
+      //ca:               fs.readFileSYnc('./ca.pem')
     }).then(function() {
       console.log('success')
     })
