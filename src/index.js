@@ -15,8 +15,13 @@ const conditionUtils = require('./conditionUtils')
  *
  * Required for both modes:
  * @param {URI} params.sourceAccount - Account URI
- * @param {String} params.sourcePassword
  * @param {URI} params.destinationAccount - Account URI
+ *
+ * Optional depending on ledger authentication method
+ * @param {String} [params.sourcePassword] - Account password (basic-auth)
+ * @param {String|Buffer} [params.sourceKey] - Account TLS Key (client-cert-auth)
+ * @param {String|Buffer} [params.sourceCert] - Account TLS Certificate (client-cert-auth)
+ *
  * Exactly one of the following:
  * @param {String} params.sourceAmount - Amount (a string, so as not to lose precision)
  * @param {String} params.destinationAmount - Amount
@@ -30,6 +35,7 @@ const conditionUtils = require('./conditionUtils')
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
+ * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
 function sendPayment (params) {
   return findPath({
@@ -38,15 +44,18 @@ function sendPayment (params) {
     sourceAmount: params.sourceAmount,
     destinationAmount: params.destinationAmount
   })
-  .then(subpayments => executePayment(subpayments, {
+  .then((subpayments) => executePayment(subpayments, {
     sourceAccount: params.sourceAccount,
     sourcePassword: params.sourcePassword,
+    sourceKey: params.sourceKey,
+    sourceCert: params.sourceCert,
     destinationAccount: params.destinationAccount,
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
     destinationMemo: params.destinationMemo,
     additionalInfo: params.additionalInfo,
-    receiptCondition: params.receiptCondition
+    receiptCondition: params.receiptCondition,
+    ca: params.ca
   }))
 }
 
@@ -59,7 +68,11 @@ function sendPayment (params) {
  * Required for both modes:
  * @param {URI} params.sourceAccount - Account URI
  * @param {URI} params.destinationAccount
- * @param {String} params.sourcePassword
+ *
+ * Optional depending on ledger authentication method
+ * @param {String} [params.sourcePassword] - Account password (basic-auth)
+ * @param {String|Buffer} [params.sourceKey] - Account TLS Key (client-cert-auth)
+ * @param {String|Buffer} [params.sourceCert] - Account TLS Certificate (client-cert-auth)
  *
  * Required for Atomic mode only:
  * @param {URI} params.notary - Notary URI (if provided, use Atomic mode)
@@ -70,6 +83,7 @@ function sendPayment (params) {
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
+ * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
 function executePayment (_subpayments, params) {
   return co(function * () {
@@ -126,7 +140,10 @@ function executePayment (_subpayments, params) {
     const firstTransfer = Payments.toFirstTransfer(subpayments)
     firstTransfer.state = yield transferUtils.postTransfer(firstTransfer, {
       username: sourceUsername,
-      password: params.sourcePassword
+      password: params.sourcePassword,
+      key: params.sourceKey,
+      cert: params.sourceCert,
+      ca: params.ca
     })
 
     // Preparation, execution.

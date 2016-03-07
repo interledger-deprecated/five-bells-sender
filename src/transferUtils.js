@@ -1,7 +1,8 @@
 'use strict'
 
 const co = require('co')
-const request = require('superagent')
+const request = require('co-request')
+const lodash = require('lodash')
 
 /**
  * @param {Transfer} transfer
@@ -39,23 +40,48 @@ function setupTransferConditionsUniversal (transfer, params) {
   return transfer
 }
 
+function * _request (options, auth) {
+  const res = yield request(lodash.defaults(options, {
+    json: true,
+    ca: auth && auth.ca,
+    cert: auth && auth.cert,
+    key: auth && auth.key,
+    auth: auth && auth.username && auth.password ? {
+      user: auth.username,
+      pass: auth.password
+    } : undefined
+  }))
+
+  if (res.statusCode >= 400) {
+    const error = new Error('Remote error: ' + res.statusCode + ' ' +
+        JSON.stringify(res.body || ''))
+    error.status = 400
+    throw error
+  }
+
+  return res
+}
+
 /**
  * @param {Transfer} transfer
  * @param {Object} auth (optional)
  * @param {String} auth.username
  * @param {String} auth.password
+ * @param {String|Buffer} auth.key
+ * @param {String|Buffer} auth.cert
+ * @param {String|Buffer} auth.ca
  * @returns {Promise<String>} the state of the transfer
  */
 function postTransfer (transfer, auth) {
   return co(function * () {
-    const transferReq = request.put(transfer.id).send(transfer)
-    if (auth) {
-      transferReq.auth(auth.username, auth.password)
+    const reqOptions = {
+      uri: transfer.id,
+      method: 'put',
+      json: true,
+      body: transfer
     }
-    const transferRes = yield transferReq
-    if (transferRes.status >= 400) {
-      throw new Error('Remote error: ' + transferRes.status + ' ' + JSON.stringify(transferRes.body))
-    }
+
+    const transferRes = yield _request(reqOptions, auth)
     return transferRes.body.state
   })
 }
@@ -75,11 +101,11 @@ function transferExpiresAt (now, transfer) {
  */
 function getTransferState (transfer) {
   return co(function * () {
-    const transferStateRes = yield request.get(transfer.id + '/state')
-    if (transferStateRes.status >= 400) {
-      throw new Error('Remote error: ' + transferStateRes.status + ' ' +
-        JSON.stringify(transferStateRes.body))
-    }
+    const transferStateRes = yield _request({
+      method: 'get',
+      uri: transfer.id + '/state'
+    })
+
     return transferStateRes.body
   })
 }

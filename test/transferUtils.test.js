@@ -1,6 +1,9 @@
 /* eslint-env node, mocha */
 'use strict'
 
+const fs = require('fs')
+const path = require('path')
+const https = require('https')
 const assert = require('assert')
 const nock = require('nock')
 const transferUtils = require('../src/transferUtils')
@@ -56,7 +59,7 @@ describe('transferUtils.setupTransferConditionsUniversal', function () {
 })
 
 describe('transferUtils.postTransfer', function () {
-  it('returns the state on 200', function * () {
+  it('returns the state on 200 -- basic-auth', function * () {
     const transferNock = nock(transfer.id)
       .put('')
       .basicAuth({user: 'foo', pass: 'bar'})
@@ -66,12 +69,40 @@ describe('transferUtils.postTransfer', function () {
     transferNock.done()
   })
 
+  it('returns the state on 200 -- client-cert-auth', function * () {
+    const transferSecure = { id: 'https://localhost:32000/transfers/1234' }
+    const key = fs.readFileSync(path.resolve(__dirname, './fixtures/server-key.pem'))
+    const cert = fs.readFileSync(path.resolve(__dirname, './fixtures/server-crt.pem'))
+    const ca = fs.readFileSync(path.resolve(__dirname, './fixtures/ca-crt.pem'))
+    const options = {
+      key: key,
+      cert: cert,
+      ca: ca,
+      rejectUnauthorized: true,
+      requestCert: true
+    }
+
+    const server = https.createServer(options, (req, res) => {
+      assert(req.socket.authorized)
+      assert.strictEqual(req.socket.getPeerCertificate().fingerprint,
+        '81:1E:69:17:74:F8:8F:79:63:74:AD:BD:3F:21:B2:24:4B:37:BE:C4')
+
+      res.writeHead(200)
+      res.end(JSON.stringify({state: 'prepared'}))
+    }).listen(32000)
+
+    const state = yield transferUtils.postTransfer(transferSecure, {key, cert, ca})
+    assert.equal(state, 'prepared')
+    server.close()
+  })
+
   it('throws on 400', function * () {
     const transferNock = nock(transfer.id).put('').reply(400)
     try {
       yield transferUtils.postTransfer(transfer, {username: 'foo', password: 'bar'})
     } catch (err) {
       assert.equal(err.status, 400)
+      assert.ok(err.message.match(/Remote error: 400/))
       transferNock.done()
       return
     }
@@ -101,6 +132,7 @@ describe('transferUtils.getTransferState', function () {
       yield transferUtils.getTransferState(transfer)
     } catch (err) {
       assert.equal(err.status, 400)
+      assert.ok(err.message.match(/Remote error: 400/))
       transferNock.done()
       return
     }
