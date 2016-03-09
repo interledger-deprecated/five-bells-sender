@@ -1,8 +1,9 @@
 'use strict'
 
 const co = require('co')
-const request = require('co-request')
-const lodash = require('lodash')
+const request = require('superagent')
+const https = require('https')
+const agents = {}
 
 /**
  * @param {Transfer} transfer
@@ -40,32 +41,9 @@ function setupTransferConditionsUniversal (transfer, params) {
   return transfer
 }
 
-function * _request (options, auth) {
-  const res = yield request(lodash.defaults(options, {
-    json: true,
-    ca: auth && auth.ca,
-    cert: auth && auth.cert,
-    key: auth && auth.key,
-    auth: auth && auth.username && auth.password ? {
-      user: auth.username,
-      pass: auth.password
-    } : undefined
-  }))
-
-  if (res.statusCode >= 400) {
-    const error = new Error('Remote error: ' + res.statusCode + ' ' +
-        JSON.stringify(res.body || ''))
-    error.status = res.statusCode
-    error.response = res
-    throw error
-  }
-
-  return res
-}
-
 /**
  * @param {Transfer} transfer
- * @param {Object} auth (optional)
+ * @param {Object} auth
  * @param {String} auth.username
  * @param {String} auth.password
  * @param {String|Buffer} auth.key
@@ -75,14 +53,14 @@ function * _request (options, auth) {
  */
 function postTransfer (transfer, auth) {
   return co(function * () {
-    const reqOptions = {
-      uri: transfer.id,
-      method: 'put',
-      json: true,
-      body: transfer
+    const transferReq = request.put(transfer.id)
+    if (auth.username && auth.password) {
+      transferReq.auth(auth.username, auth.password)
     }
-
-    const transferRes = yield _request(reqOptions, auth)
+    if (auth.cert || auth.ca) {
+      transferReq.agent(getAgent(auth))
+    }
+    const transferRes = yield transferReq.send(transfer)
     return transferRes.body.state
   })
 }
@@ -102,13 +80,13 @@ function transferExpiresAt (now, transfer) {
  */
 function getTransferState (transfer) {
   return co(function * () {
-    const transferStateRes = yield _request({
-      method: 'get',
-      uri: transfer.id + '/state'
-    })
-
+    const transferStateRes = yield request.get(transfer.id + '/state')
     return transferStateRes.body
   })
+}
+
+function getAgent (auth) {
+  return agents[auth.cert] || (agents[auth.cert] = new https.Agent(auth))
 }
 
 exports.setupTransferConditionsAtomic = setupTransferConditionsAtomic

@@ -17,7 +17,7 @@ const Payments = require('./payments')
 function setupCase (params) {
   return co(function * () {
     const caseID = params.notary + '/cases/' + uuid()
-    const caseRes = yield request
+    yield request
       .put(caseID)
       .send({
         id: caseID,
@@ -27,10 +27,6 @@ function setupCase (params) {
         notaries: [{url: params.notary}],
         notification_targets: Payments.toTransfers(params.payments).map(transferToFulfillmentURI)
       })
-    if (caseRes.status >= 400) {
-      throw new Error('Notary error: ' + caseRes.status + ' ' +
-        JSON.stringify(caseRes.body))
-    }
     return caseID
   })
 }
@@ -51,13 +47,9 @@ function transferToFulfillmentURI (transfer) {
 function postFulfillmentToNotary (finalTransfer, caseID) {
   return co(function * () {
     const finalTransferState = yield getTransferState(finalTransfer)
-    const notaryFulfillmentRes = yield request
+    yield request
       .put(caseID + '/fulfillment')
       .send({ type: finalTransferState.type, signature: finalTransferState.signature })
-    if (notaryFulfillmentRes >= 400) {
-      throw new Error('Remote error: ' + notaryFulfillmentRes.status + ' ' +
-        JSON.stringify(notaryFulfillmentRes.body))
-    }
   })
 }
 

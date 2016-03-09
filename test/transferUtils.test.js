@@ -87,7 +87,7 @@ describe('transferUtils.postTransfer', function () {
       assert.strictEqual(req.socket.getPeerCertificate().fingerprint,
         '81:1E:69:17:74:F8:8F:79:63:74:AD:BD:3F:21:B2:24:4B:37:BE:C4')
 
-      res.writeHead(200)
+      res.writeHead(200, {'Content-Type': 'application/json'})
       res.end(JSON.stringify({state: 'prepared'}))
     }).listen(32000)
 
@@ -102,7 +102,6 @@ describe('transferUtils.postTransfer', function () {
       yield transferUtils.postTransfer(transfer, {username: 'foo', password: 'bar'})
     } catch (err) {
       assert.equal(err.status, 400)
-      assert.ok(err.message.match(/Remote error: 400/))
       transferNock.done()
       return
     }
@@ -132,7 +131,6 @@ describe('transferUtils.getTransferState', function () {
       yield transferUtils.getTransferState(transfer)
     } catch (err) {
       assert.equal(err.status, 400)
-      assert.ok(err.message.match(/Remote error: 400/))
       transferNock.done()
       return
     }

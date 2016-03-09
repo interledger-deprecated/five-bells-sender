@@ -164,10 +164,6 @@ function postPayment (payment) {
     const paymentRes = yield request
       .put(payment.id)
       .send(payment)
-    if (paymentRes.status >= 400) {
-      throw new Error('Remote error: ' + paymentRes.status + ' ' +
-        JSON.stringify(paymentRes.body))
-    }
     return paymentRes.body
   })
 }
