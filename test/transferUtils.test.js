@@ -6,10 +6,42 @@ const path = require('path')
 const https = require('https')
 const assert = require('assert')
 const nock = require('nock')
+const clone = require('./helpers').clone
+const Payments = require('../src/payments')
 const transferUtils = require('../src/transferUtils')
 
 const transfer = { id: 'http://ledger.example/transfers/1234' }
 const now = 1454400000000
+
+beforeEach(function () {
+  this.quotes = clone(require('./fixtures/quotes.json'))
+  this.setupTransfers = Payments.toTransfers(
+    Payments.setupTransfers(this.quotes,
+      'http://usd-ledger.example/accounts/alice',
+      'http://eur-ledger.example/accounts/bob'))
+  this.transfers = clone(require('./fixtures/transfers.json'))
+})
+
+describe('transferUtils.setupTransferChain', function () {
+  it('makes a transfer chain', function () {
+    const chain = transferUtils.setupTransferChain(this.transfers)
+    assert.deepEqual(chain, this.transfers[0])
+    assert.deepEqual(chain.credits[0].memo, this.transfers[1])
+    assert.deepEqual(this.transfers[1].credits[0].memo, this.transfers[2])
+  })
+})
+
+describe('transferUtils.setupConditions', function () {
+  it('authorizes the first debit', function () {
+    const transfers = transferUtils.setupConditions(this.setupTransfers, {
+      isAtomic: false,
+      executionCondition: [0]
+    })
+    assert.strictEqual(transfers[0].debits[0].authorized, true)
+    assert.deepEqual(transfers[0].execution_condition, [0])
+    assert.deepEqual(transfers[transfers.length - 1].execution_condition, undefined)
+  })
+})
 
 describe('transferUtils.setupTransferConditionsAtomic', function () {
   it('adds conditions and cases', function () {

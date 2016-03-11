@@ -6,6 +6,58 @@ const https = require('https')
 const agents = {}
 
 /**
+ * @param {[Transfer]} transfers
+ * @return {Transfer}
+ */
+function setupTransferChain (transfers) {
+  transfers.reduce(function (previousTransfer, transfer) {
+    previousTransfer.credits[0].memo = transfer
+    return transfer
+  })
+  return transfers[0]
+}
+
+/**
+ * @param {[Transfer]} transfers
+ * @param {Object} params
+ * @param {Boolean} params.isAtomic
+ * @param {Condition} params.executionCondition
+ * @param {Condition} params.cancellationCondition (iff isAtomic)
+ * @param {URI} params.caseID (iff isAtomic)
+ * @returns {[Transfer]}
+ */
+function setupConditions (transfers, params) {
+  const finalTransfer = transfers[transfers.length - 1]
+  // Use one Date.now() as the base of all expiries so that when a ms passes
+  // between when the source and destination expiries are calculated the
+  // minMessageWindow isn't exceeded.
+  const now = Date.now()
+
+  // Add conditions/expirations to all transfers.
+  for (let transfer of transfers) {
+    if (params.isAtomic) {
+      setupTransferConditionsAtomic(transfer, {
+        executionCondition: params.executionCondition,
+        cancellationCondition: params.cancellationCondition,
+        caseID: params.caseID
+      })
+    } else {
+      const isFinalTransfer = transfer === finalTransfer
+      setupTransferConditionsUniversal(transfer, {
+        executionCondition: params.executionCondition,
+        now: now,
+        isFinalTransfer: isFinalTransfer
+      })
+    }
+  }
+
+  // The first transfer must be submitted by us with authorization
+  // TODO: This must be a genuine authorization from the user
+  transfers[0].debits[0].authorized = true
+  return transfers
+}
+
+/**
  * @param {Transfer} transfer
  * @param {Object} params
  * @param {Condition} params.executionCondition
@@ -89,6 +141,8 @@ function getAgent (auth) {
   return agents[auth.cert] || (agents[auth.cert] = new https.Agent(auth))
 }
 
+exports.setupTransferChain = setupTransferChain
+exports.setupConditions = setupConditions
 exports.setupTransferConditionsAtomic = setupTransferConditionsAtomic
 exports.setupTransferConditionsUniversal = setupTransferConditionsUniversal
 exports.postTransfer = postTransfer

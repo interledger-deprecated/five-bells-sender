@@ -31,7 +31,6 @@ const conditionUtils = require('./conditionUtils')
  * @param {String} params.notaryPublicKey - Base64-encoded public key
  *
  * Other:
- * @param {String} params.destinationMemo
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
@@ -52,7 +51,6 @@ function sendPayment (params) {
     destinationAccount: params.destinationAccount,
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
-    destinationMemo: params.destinationMemo,
     additionalInfo: params.additionalInfo,
     receiptCondition: params.receiptCondition,
     ca: params.ca
@@ -79,7 +77,6 @@ function sendPayment (params) {
  * @param {String} params.notaryPublicKey - Base64-encoded public key
  *
  * Other:
- * @param {String} params.destinationMemo
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
@@ -92,14 +89,11 @@ function executePayment (_subpayments, params) {
       throw new Error('Missing required parameter: notaryPublicKey')
     }
 
-    let subpayments = Payments.setupTransfers(_subpayments,
+    const subpayments = Payments.setupTransfers(_subpayments,
       params.sourceAccount,
       params.destinationAccount,
       params.additionalInfo)
-
-    if (params.destinationMemo) {
-      Payments.toFinalTransfer(subpayments).credits[0].memo = params.destinationMemo
-    }
+    let transfers = Payments.toTransfers(subpayments)
 
     // In universal mode, each transfer executes when the last transfer in the chain
     // has executed. The final one in the chain executes when all are prepared.
@@ -109,14 +103,14 @@ function executePayment (_subpayments, params) {
     const receiptConditionState = isAtomic ? 'prepared' : 'executed'
     const receiptCondition = params.receiptCondition ||
       (yield conditionUtils.getReceiptCondition(
-        Payments.toFinalTransfer(subpayments),
+        transfers[transfers.length - 1],
         receiptConditionState))
 
     const caseID = isAtomic && (yield notaryUtils.setupCase({
       notary: params.notary,
       receiptCondition: receiptCondition,
-      payments: subpayments,
-      expiresAt: transferUtils.transferExpiresAt(Date.now(), Payments.toFirstTransfer(subpayments))
+      transfers: transfers,
+      expiresAt: transferUtils.transferExpiresAt(Date.now(), transfers[0])
     }))
 
     const conditionParams = {
@@ -128,7 +122,7 @@ function executePayment (_subpayments, params) {
     const executionCondition = conditionUtils.getExecutionCondition(conditionParams)
     const cancellationCondition = isAtomic && conditionUtils.getCancellationCondition(conditionParams)
 
-    subpayments = Payments.setupConditions(subpayments, {
+    transfers = transferUtils.setupConditions(transfers, {
       isAtomic,
       executionCondition,
       cancellationCondition,
@@ -139,7 +133,7 @@ function executePayment (_subpayments, params) {
 
     // Prepare the first transfer.
     const sourceUsername = (yield getAccount(params.sourceAccount)).name
-    const firstTransfer = Payments.toFirstTransfer(subpayments)
+    const firstTransfer = transferUtils.setupTransferChain(transfers)
     firstTransfer.state = yield transferUtils.postTransfer(firstTransfer, {
       username: sourceUsername,
       password: params.sourcePassword,
@@ -148,16 +142,13 @@ function executePayment (_subpayments, params) {
       ca: params.ca
     })
 
-    // Preparation, execution.
-    subpayments = yield Payments.postPayments(subpayments)
-
     // Execution (atomic)
     // If a custom receiptCondition is used, it is the recipient's
     // job to post fulfillment.
     if (isAtomic && !params.receiptCondition) {
-      yield notaryUtils.postFulfillmentToNotary(Payments.toFinalTransfer(subpayments), caseID)
+      yield notaryUtils.postFulfillmentToNotary(transfers[transfers.length - 1], caseID)
     }
-    return subpayments
+    return transfers
   })
 }
 

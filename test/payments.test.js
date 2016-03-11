@@ -1,11 +1,9 @@
 /* eslint-env node, mocha */
 'use strict'
 const assert = require('assert')
-const chai = require('chai')
-const nock = require('nock')
-const Payments = require('../src/payments')
-const expect = chai.expect
 const InvalidBodyError = require('five-bells-shared').InvalidBodyError
+const Payments = require('../src/payments')
+const clone = require('./helpers').clone
 
 const alice = 'http://usd-ledger.example/accounts/alice'
 const bob = 'http://eur-ledger.example/accounts/bob'
@@ -67,19 +65,6 @@ describe('Payments.setupTransfers', function () {
   })
 })
 
-describe('Payments.setupConditions', function () {
-  it('authorizes the first debit', function () {
-    const template = Payments.setupTransfers(this.quotes, alice, bob)
-    const payments = Payments.setupConditions(template, {
-      isAtomic: false,
-      executionCondition: [0]
-    })
-    assert.strictEqual(payments[0].source_transfers[0].debits[0].authorized, true)
-    assert.deepEqual(payments[0].source_transfers[0].execution_condition, [0])
-    assert.deepEqual(payments[1].destination_transfers[0].execution_condition, undefined)
-  })
-})
-
 describe('Payments.toTransfers', function () {
   it('converts a list of Payments to a list of Transfers', function () {
     assert.deepEqual(
@@ -100,84 +85,27 @@ describe('Payments.toTransfers', function () {
   })
 })
 
-describe('Payment.toFirstTransfer', function () {
-  it('returns a Transfer', function () {
-    assert.deepEqual(
-      Payments.toFirstTransfer(this.payments),
-      this.payments[0].source_transfers[0])
-  })
-})
-
-describe('Payment.toFinalTransfer', function () {
-  it('returns a Transfer', function () {
-    assert.deepEqual(
-      Payments.toFinalTransfer(this.payments),
-      this.payments[1].destination_transfers[0])
-  })
-})
-
-describe('Payments.postPayments', function () {
-  it('updates the transfers in the payment list', function * () {
-    const transfers = Payments.toTransfers(this.payments)
-    const transfer1 = clone(transfers[1])
-    const transfer2 = clone(transfers[2])
-    transfer1.updated = transfer2.updated = 'yes'
-    const payment1Nock = nock(this.payments[0].id)
-      .put('', this.payments[0])
-      .reply(200, {destination_transfers: [transfer1]})
-    const payment2Nock = nock(this.payments[1].id)
-      .put('', this.payments[1])
-      .reply(200, {destination_transfers: [transfer2]})
-    const payments = yield Payments.postPayments(this.payments)
-    assert.deepEqual(payments[0].destination_transfers, [transfer1])
-    assert.deepEqual(payments[1].source_transfers, [transfer1])
-    assert.deepEqual(payments[1].destination_transfers, [transfer2])
-    payment1Nock.done()
-    payment2Nock.done()
-  })
-
-  it('throws on 400', function * () {
-    const payment1Nock = nock(this.payments[0].id).put('').reply(400)
-    try {
-      yield Payments.postPayments(this.payments)
-    } catch (err) {
-      assert.equal(err.status, 400)
-      payment1Nock.done()
-      return
-    }
-    assert(false)
-  })
-})
-
 describe('Payments.validatePayments', function () {
   it('throws an InvalidBodyError when passed invalid payments', function () {
-    expect(() => {
+    assert.throws(function () {
       Payments.validatePayments([this.invalidPayment])
-    }).to.throw(InvalidBodyError, /Payment schema validation error: Missing required property: destination_transfers/)
+    }.bind(this), InvalidBodyError, /Payment schema validation error: Missing required property: destination_transfers/)
   })
 
   it('throws an InvalidBodyError when passed a payment with an invalid source_transfer', function () {
-    expect(() => {
+    assert.throws(function () {
       Payments.validatePayments([this.paymentInvalidSourceTransfer])
-    }).to.throw(InvalidBodyError, /Transfer schema validation error: Missing required property: debits/)
+    }.bind(this), InvalidBodyError, /Transfer schema validation error: Missing required property: debits/)
   })
 
   it('throws an InvalidBodyError when passed a payment with an invalid destination_transfer', function () {
-    expect(() => {
+    assert.throws(function () {
       Payments.validatePayments([this.paymentInvalidDestinationTransfer])
-    }).to.throw(InvalidBodyError, /Transfer schema validation error: Missing required property: account/)
+    }.bind(this), InvalidBodyError, /Transfer schema validation error: Missing required property: account/)
   })
 })
 
 function isTransferID (prefix, transfer_id) {
   const pattern = new RegExp('^http://' + prefix + '-ledger\\.example/transfers/[\\w-]+$')
   return pattern.test(transfer_id)
-}
-
-function clone (obj) {
-  if (obj instanceof Array) return obj.map(clone)
-  if (typeof obj !== 'object') return obj
-  const copy = {}
-  for (let key in obj) copy[key] = obj[key]
-  return copy
 }

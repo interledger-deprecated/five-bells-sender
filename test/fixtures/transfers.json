@@ -1,0 +1,35 @@
+[
+  {
+    "id": "http://ledger1.example/transfers/1",
+    "debits": [{
+      "account": "http://ledger1.example/accounts/alice",
+      "amount": "123.12"
+    }],
+    "credits": [{
+      "account": "http://ledger1.example/accounts/mark",
+      "amount": "123.12"
+    }]
+  },
+  {
+    "id": "http://ledger2.example/transfers/2",
+    "debits": [{
+      "account": "http://ledger2.example/accounts/mark",
+      "amount": "123.12"
+    }],
+    "credits": [{
+      "account": "http://ledger2.example/accounts/max",
+      "amount": "123.12"
+    }]
+  },
+  {
+    "id": "http://ledger3.example/transfers/3",
+    "debits": [{
+      "account": "http://ledger3.example/accounts/max",
+      "amount": "123.12"
+    }],
+    "credits": [{
+      "account": "http://ledger3.example/accounts/bob",
+      "amount": "123.12"
+    }]
+  }
+]
