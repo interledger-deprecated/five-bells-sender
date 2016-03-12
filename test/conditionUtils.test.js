@@ -10,13 +10,13 @@ const transfer = {
   ledger: 'http://ledger.example'
 }
 
-describe('conditionUtils.getReceiptCondition', function () {
-  it('builds a Condition', function * () {
+describe('conditionUtils.getTransferReceiptCondition', function () {
+  it('builds a Condition from a transfer object', function * () {
     const transferNock = nock(transfer.id).get('/state').reply(200, {
       type: 'ed25519-sha512',
       public_key: 1234
     })
-    assert.deepEqual((yield conditionUtils.getReceiptCondition(transfer, 'executed')),
+    assert.deepEqual((yield conditionUtils.getTransferReceiptCondition(transfer, 'executed')),
       {
         message_hash: 'ZZeLK/FVt4iGMxy6FDohwnFxNBbPbC/2Hf7Y2a9/WLBb/AlmLTpA91lVRmMJLSSLwTgOUsqGTi9EPzlowHdl9Q==',
         signer: 'http://ledger.example',
@@ -24,6 +24,18 @@ describe('conditionUtils.getReceiptCondition', function () {
         public_key: 1234
       })
     transferNock.done()
+  })
+})
+
+describe('conditionUtils.getReceiptCondition', function () {
+  it('builds a Condition', function * () {
+    assert.deepEqual((conditionUtils.getReceiptCondition('ZZeLK/FVt4iGMxy6FDohwnFxNBbPbC/2Hf7Y2a9/WLBb/AlmLTpA91lVRmMJLSSLwTgOUsqGTi9EPzlowHdl9Q==', 'http://ledger.example', 1234, 'ed25519-sha512')),
+      {
+        message_hash: 'ZZeLK/FVt4iGMxy6FDohwnFxNBbPbC/2Hf7Y2a9/WLBb/AlmLTpA91lVRmMJLSSLwTgOUsqGTi9EPzlowHdl9Q==',
+        signer: 'http://ledger.example',
+        type: 'ed25519-sha512',
+        public_key: 1234
+      })
   })
 })
 

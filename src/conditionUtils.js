@@ -10,18 +10,30 @@ const getTransferState = require('./transferUtils').getTransferState
  * @param {TransferState} state "prepared" | "executed"
  * @returns {Promise<Condition>}
  */
-function getReceiptCondition (finalTransfer, state) {
+function getTransferReceiptCondition (finalTransfer, state) {
   // Execution condition is the final transfer in the chain
   return getTransferState(finalTransfer)
-    .then(finalTransferState => ({
-      message_hash: hashJSON({
-        id: finalTransfer.id,
-        state: state
-      }),
-      signer: finalTransfer.ledger,
-      public_key: finalTransferState.public_key,
-      type: finalTransferState.type
-    }))
+    .then(finalTransferState => (
+      getReceiptCondition(hashJSON({
+        id: finalTransfer.id, state
+      }), finalTransfer.ledger, finalTransferState.public_key, finalTransferState.type))
+    )
+}
+
+/**
+ * @param {String} messageHash
+ * @param {URI} signer
+ * @param {String} publicKey
+ * @param {String} signingAlgorithm
+ * @returns {Condition}
+ */
+function getReceiptCondition (messageHash, signer, publicKey, signingAlgorithm) {
+  return {
+    message_hash: messageHash,
+    signer,
+    public_key: publicKey,
+    type: signingAlgorithm
+  }
 }
 
 /**
@@ -85,6 +97,7 @@ function sha512 (str) {
   return crypto.createHash('sha512').update(str).digest('base64')
 }
 
+exports.getTransferReceiptCondition = getTransferReceiptCondition
 exports.getReceiptCondition = getReceiptCondition
 exports.getExecutionCondition = getExecutionCondition
 exports.getCancellationCondition = getCancellationCondition
