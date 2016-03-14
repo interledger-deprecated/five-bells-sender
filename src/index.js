@@ -108,7 +108,7 @@ function executePayment (_subpayments, params) {
     // that all of the transfers are prepared.
     const receiptConditionState = isAtomic ? 'prepared' : 'executed'
     const receiptCondition = params.receiptCondition ||
-      (yield conditionUtils.getTransferReceiptCondition(
+      (yield conditionUtils.getReceiptCondition(
         Payments.toFinalTransfer(subpayments),
         receiptConditionState))
 
@@ -220,10 +220,3 @@ module.exports = sendPayment
 module.exports.default = sendPayment
 module.exports.executePayment = executePayment
 module.exports.findPath = findPath
-
-/**
- * Expose condition methods
- */
-module.exports.getReceiptCondition = conditionUtils.getReceiptCondition
-module.exports.getExecutionCondition = conditionUtils.getExecutionCondition
-module.exports.getCancellationCondition = conditionUtils.getCancellationCondition
