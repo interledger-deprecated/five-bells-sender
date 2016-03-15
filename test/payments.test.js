@@ -1,8 +1,11 @@
 /* eslint-env node, mocha */
 'use strict'
 const assert = require('assert')
+const chai = require('chai')
 const nock = require('nock')
 const Payments = require('../src/payments')
+const expect = chai.expect
+const InvalidBodyError = require('five-bells-shared').InvalidBodyError
 
 const alice = 'http://usd-ledger.example/accounts/alice'
 const bob = 'http://eur-ledger.example/accounts/bob'
@@ -12,6 +15,9 @@ beforeEach(function () {
   this.quote = clone(require('./fixtures/quote.json'))
   this.quotes = clone(require('./fixtures/quotes.json'))
   this.quoteOneToMany = clone(require('./fixtures/quoteOneToMany.json'))
+  this.invalidPayment = clone(require('./fixtures/invalidPayment'))
+  this.paymentInvalidSourceTransfer = clone(require('./fixtures/paymentInvalidSourceTransfer'))
+  this.paymentInvalidDestinationTransfer = clone(require('./fixtures/paymentInvalidDestinationTransfer'))
 })
 
 describe('Payments.setupTransfers', function () {
@@ -140,6 +146,26 @@ describe('Payments.postPayments', function () {
       return
     }
     assert(false)
+  })
+})
+
+describe('Payments.validatePayments', function () {
+  it('throws an InvalidBodyError when passed invalid payments', function () {
+    expect(() => {
+      Payments.validatePayments([this.invalidPayment])
+    }).to.throw(InvalidBodyError, /Payment schema validation error: Missing required property: destination_transfers/)
+  })
+
+  it('throws an InvalidBodyError when passed a payment with an invalid source_transfer', function () {
+    expect(() => {
+      Payments.validatePayments([this.paymentInvalidSourceTransfer])
+    }).to.throw(InvalidBodyError, /Transfer schema validation error: Missing required property: debits/)
+  })
+
+  it('throws an InvalidBodyError when passed a payment with an invalid destination_transfer', function () {
+    expect(() => {
+      Payments.validatePayments([this.paymentInvalidDestinationTransfer])
+    }).to.throw(InvalidBodyError, /Transfer schema validation error: Missing required property: account/)
   })
 })
 
