@@ -4,6 +4,7 @@ const co = require('co')
 const request = require('superagent')
 const uuid = require('uuid4')
 const transferUtils = require('./transferUtils')
+const validate = require('./validator').validate
 
 /**
  * @param {[Payment]} payments
@@ -49,6 +50,21 @@ function validateOneToOnePayment (payment) {
   if (payment.source_transfers.length !== 1 ||
       payment.destination_transfers.length !== 1) {
     throw new Error('five-bells-sender only supports one-to-one payments')
+  }
+}
+
+/**
+ * @param {[Payment]} payments
+ */
+function validatePayments (payments) {
+  for (const payment of payments) {
+    validate('Payment', payment)
+    for (const sourceTransfer of payment.source_transfers) {
+      validate('Transfer', sourceTransfer)
+    }
+    for (const destinationTransfer of payment.destination_transfers) {
+      validate('Transfer', destinationTransfer)
+    }
   }
 }
 
@@ -174,3 +190,4 @@ exports.toTransfers = toTransfers
 exports.toFirstTransfer = toFirstTransfer
 exports.toFinalTransfer = toFinalTransfer
 exports.postPayments = postPayments
+exports.validatePayments = validatePayments

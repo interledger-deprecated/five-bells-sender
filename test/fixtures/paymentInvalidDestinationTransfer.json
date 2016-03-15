@@ -1,0 +1,32 @@
+{
+  "source_transfers": [
+    {
+      "id": "http://localhost/transfers/255dff3f-4915-44df-a707-acc4b527bcbf",
+      "ledger": "http://localhost",
+      "debits": [{
+        "account": "http://localhost/accounts/eve",
+        "amount": "10",
+        "authorized": true
+      }],
+      "credits": [{
+        "account": "http://localhost/accounts/bob",
+        "amount": "10"
+      }]
+    }
+  ],
+  "destination_transfers": [
+    {
+      "id": "http://localhost/transfers/155dff3f-4915-44df-a707-acc4b527bcbd",
+      "ledger": "http://localhost",
+      "debits": [{
+        "amount": "10",
+        "authorized": true
+      }],
+      "credits": [{
+        "account": "http://localhost/accounts/bob",
+        "amount": "10"
+      }],
+      "state": "executed"
+    }
+  ]
+}
