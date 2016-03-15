@@ -92,8 +92,6 @@ function executePayment (_subpayments, params) {
       throw new Error('Missing required parameter: notaryPublicKey')
     }
 
-    Payments.validatePayments(_subpayments)
-
     let subpayments = Payments.setupTransfers(_subpayments,
       params.sourceAccount,
       params.destinationAccount,
@@ -136,6 +134,8 @@ function executePayment (_subpayments, params) {
       cancellationCondition,
       caseID
     })
+
+    Payments.validatePayments(subpayments)
 
     // Prepare the first transfer.
     const sourceUsername = (yield getAccount(params.sourceAccount)).name
