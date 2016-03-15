@@ -30,7 +30,7 @@
     "five-bells-pathfind": "~4.3.0",
     "five-bells-shared": "~8.10.0",
     "superagent": "^1.5.0",
-    "uuid4": "^1.0.0"
+    "node-uuid": "^1.4.7"
   },
   "devDependencies": {
     "babel": "^6.3.13",

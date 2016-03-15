@@ -2,7 +2,7 @@
 
 const co = require('co')
 const request = require('superagent')
-const uuid = require('uuid4')
+const uuid = require('node-uuid').v4
 const transferUtils = require('./transferUtils')
 const validate = require('./validator').validate
 
