@@ -1,12 +1,11 @@
 'use strict'
 
 const uuid = require('node-uuid').v4
-const validate = require('./validator').validate
 
 /**
- * @param {[Payment]} payments
+ * @param {Payment[]} payments
  * @param {URI} sourceAccount
- * @returns {[Payment]}
+ * @returns {Payment[]}
  */
 function setupTransfers (payments, sourceAccount, destinationAccount, additionalInfo) {
   // The forEach only modifies `source_transfers` because:
@@ -51,23 +50,8 @@ function validateOneToOnePayment (payment) {
 }
 
 /**
- * @param {[Payment]} payments
- */
-function validatePayments (payments) {
-  for (const payment of payments) {
-    validate('Payment', payment)
-    for (const sourceTransfer of payment.source_transfers) {
-      validate('Transfer', sourceTransfer)
-    }
-    for (const destinationTransfer of payment.destination_transfers) {
-      validate('Transfer', destinationTransfer)
-    }
-  }
-}
-
-/**
- * @param {[Payment]} payments
- * @returns {[Transfers]}
+ * @param {Payment[]} payments
+ * @returns {Transfers[]}
  */
 function toTransfers (payments) {
   return payments.map(function (payment) {
@@ -79,4 +63,3 @@ function toTransfers (payments) {
 
 exports.setupTransfers = setupTransfers
 exports.toTransfers = toTransfers
-exports.validatePayments = validatePayments

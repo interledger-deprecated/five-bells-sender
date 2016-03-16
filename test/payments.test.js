@@ -1,7 +1,6 @@
 /* eslint-env node, mocha */
 'use strict'
 const assert = require('assert')
-const InvalidBodyError = require('five-bells-shared').InvalidBodyError
 const Payments = require('../src/payments')
 const clone = require('./helpers').clone
 
@@ -13,9 +12,6 @@ beforeEach(function () {
   this.quote = clone(require('./fixtures/quote.json'))
   this.quotes = clone(require('./fixtures/quotes.json'))
   this.quoteOneToMany = clone(require('./fixtures/quoteOneToMany.json'))
-  this.invalidPayment = clone(require('./fixtures/invalidPayment'))
-  this.paymentInvalidSourceTransfer = clone(require('./fixtures/paymentInvalidSourceTransfer'))
-  this.paymentInvalidDestinationTransfer = clone(require('./fixtures/paymentInvalidDestinationTransfer'))
 })
 
 describe('Payments.setupTransfers', function () {
@@ -82,26 +78,6 @@ describe('Payments.toTransfers', function () {
         this.payments[0].source_transfers[0],
         this.payments[0].destination_transfers[0]
       ])
-  })
-})
-
-describe('Payments.validatePayments', function () {
-  it('throws an InvalidBodyError when passed invalid payments', function () {
-    assert.throws(function () {
-      Payments.validatePayments([this.invalidPayment])
-    }.bind(this), InvalidBodyError, /Payment schema validation error: Missing required property: destination_transfers/)
-  })
-
-  it('throws an InvalidBodyError when passed a payment with an invalid source_transfer', function () {
-    assert.throws(function () {
-      Payments.validatePayments([this.paymentInvalidSourceTransfer])
-    }.bind(this), InvalidBodyError, /Transfer schema validation error: Missing required property: debits/)
-  })
-
-  it('throws an InvalidBodyError when passed a payment with an invalid destination_transfer', function () {
-    assert.throws(function () {
-      Payments.validatePayments([this.paymentInvalidDestinationTransfer])
-    }.bind(this), InvalidBodyError, /Transfer schema validation error: Missing required property: account/)
   })
 })
 

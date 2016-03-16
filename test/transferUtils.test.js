@@ -26,8 +26,8 @@ describe('transferUtils.setupTransferChain', function () {
   it('makes a transfer chain', function () {
     const chain = transferUtils.setupTransferChain(this.transfers)
     assert.deepEqual(chain, this.transfers[0])
-    assert.deepEqual(chain.credits[0].memo, this.transfers[1])
-    assert.deepEqual(this.transfers[1].credits[0].memo, this.transfers[2])
+    assert.deepEqual(chain.credits[0].memo.destination_transfer, this.transfers[1])
+    assert.deepEqual(this.transfers[1].credits[0].memo.destination_transfer, this.transfers[2])
   })
 })
 

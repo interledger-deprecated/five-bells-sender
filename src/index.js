@@ -7,6 +7,7 @@ const Payments = require('./payments')
 const transferUtils = require('./transferUtils')
 const notaryUtils = require('./notaryUtils')
 const conditionUtils = require('./conditionUtils')
+const validator = require('./validator')
 
 /**
  * Create and execute a transaction.
@@ -31,6 +32,7 @@ const conditionUtils = require('./conditionUtils')
  * @param {String} params.notaryPublicKey - Base64-encoded public key
  *
  * Other:
+ * @param {Object} params.destinationMemo
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
@@ -51,6 +53,7 @@ function sendPayment (params) {
     destinationAccount: params.destinationAccount,
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
+    destinationMemo: params.destinationMemo,
     additionalInfo: params.additionalInfo,
     receiptCondition: params.receiptCondition,
     ca: params.ca
@@ -60,7 +63,7 @@ function sendPayment (params) {
 /**
  * Execute a transaction.
  *
- * @param {[Object]} _subpayments - The quoted payment path.
+ * @param {Object[]} _subpayments - The quoted payment path.
  * @param {Object} params
  *
  * Required for both modes:
@@ -77,6 +80,7 @@ function sendPayment (params) {
  * @param {String} params.notaryPublicKey - Base64-encoded public key
  *
  * Other:
+ * @param {Object} params.destinationMemo
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
@@ -94,6 +98,10 @@ function executePayment (_subpayments, params) {
       params.destinationAccount,
       params.additionalInfo)
     let transfers = Payments.toTransfers(subpayments)
+
+    if (params.destinationMemo) {
+      transfers[transfers.length - 1].credits[0].memo = params.destinationMemo
+    }
 
     // In universal mode, each transfer executes when the last transfer in the chain
     // has executed. The final one in the chain executes when all are prepared.
@@ -129,11 +137,10 @@ function executePayment (_subpayments, params) {
       caseID
     })
 
-    Payments.validatePayments(subpayments)
-
     // Prepare the first transfer.
     const sourceUsername = (yield getAccount(params.sourceAccount)).name
     const firstTransfer = transferUtils.setupTransferChain(transfers)
+    validator.validateTransfer(firstTransfer)
     firstTransfer.state = yield transferUtils.postTransfer(firstTransfer, {
       username: sourceUsername,
       password: params.sourcePassword,

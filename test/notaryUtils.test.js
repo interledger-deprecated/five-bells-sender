@@ -71,8 +71,8 @@ describe('notaryUtils.setupCase', function () {
     const caseID = notaryUtils.createCaseID()
     const usedCaseID = yield notaryUtils.setupCase({
       notary,
-      payments,
       caseID,
+      transfers: this.transfers,
       receiptCondition: [1],
       expiresAt: '2016-02-02T08:00:02.000Z'
     })
@@ -87,8 +87,8 @@ describe('notaryUtils.setupCase', function () {
     try {
       yield notaryUtils.setupCase({
         notary,
-        payments,
         caseID,
+        transfers: this.transfers,
         receiptCondition: [1],
         expiresAt: '2016-02-02T08:00:02.000Z'
       })

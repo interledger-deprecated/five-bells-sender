@@ -6,25 +6,27 @@ const https = require('https')
 const agents = {}
 
 /**
- * @param {[Transfer]} transfers
+ * @param {Transfer[]} transfers
  * @return {Transfer}
  */
 function setupTransferChain (transfers) {
   transfers.reduce(function (previousTransfer, transfer) {
-    previousTransfer.credits[0].memo = transfer
+    const credit = previousTransfer.credits[0]
+    if (!credit.memo) credit.memo = {}
+    credit.memo.destination_transfer = transfer
     return transfer
   })
   return transfers[0]
 }
 
 /**
- * @param {[Transfer]} transfers
+ * @param {Transfer[]} transfers
  * @param {Object} params
  * @param {Boolean} params.isAtomic
  * @param {Condition} params.executionCondition
  * @param {Condition} params.cancellationCondition (iff isAtomic)
  * @param {URI} params.caseID (iff isAtomic)
- * @returns {[Transfer]}
+ * @returns {Transfer[]}
  */
 function setupConditions (transfers, params) {
   const finalTransfer = transfers[transfers.length - 1]
@@ -34,40 +36,40 @@ function setupConditions (transfers, params) {
   const now = Date.now()
 
   // Add conditions/expirations to all transfers.
-  for (let transfer of transfers) {
+  return transfers.map(function (transfer, i) {
+    // The first transfer must be submitted by us with authorization
+    // TODO: This must be a genuine authorization from the user
+    if (i === 0) transfer.debits[0].authorized = true
     if (params.isAtomic) {
-      setupTransferConditionsAtomic(transfer, {
+      return setupTransferConditionsAtomic(transfer, {
         executionCondition: params.executionCondition,
         cancellationCondition: params.cancellationCondition,
         caseID: params.caseID
       })
     } else {
       const isFinalTransfer = transfer === finalTransfer
-      setupTransferConditionsUniversal(transfer, {
+      return setupTransferConditionsUniversal(transfer, {
         executionCondition: params.executionCondition,
         now: now,
         isFinalTransfer: isFinalTransfer
       })
     }
-  }
-
-  // The first transfer must be submitted by us with authorization
-  // TODO: This must be a genuine authorization from the user
-  transfers[0].debits[0].authorized = true
-  return transfers
+  })
 }
 
 /**
- * @param {Transfer} transfer
+ * @param {Transfer} _transfer
  * @param {Object} params
  * @param {Condition} params.executionCondition
  * @param {Condition} params.cancellationCondition
  * @param {URI} params.caseID
  * @returns {Transfer}
  */
-function setupTransferConditionsAtomic (transfer, params) {
-  transfer.execution_condition = params.executionCondition
-  transfer.cancellation_condition = params.cancellationCondition
+function setupTransferConditionsAtomic (_transfer, params) {
+  const transfer = Object.assign({}, _transfer, {
+    execution_condition: params.executionCondition,
+    cancellation_condition: params.cancellationCondition
+  })
   transfer.additional_info = transfer.additional_info || {}
   transfer.additional_info.cases = [params.caseID]
   // Atomic transfers don't expire

@@ -14,4 +14,4 @@ function validate (schema, json) {
   }
 }
 
-exports.validate = validate
+exports.validateTransfer = function (transfer) { validate('Transfer', transfer) }

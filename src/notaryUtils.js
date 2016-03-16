@@ -5,6 +5,9 @@ const request = require('superagent')
 const uuid = require('node-uuid').v4
 const getTransferState = require('./transferUtils').getTransferState
 
+const STATE_RETRY_ATTEMPTS = 5
+const STATE_RETRY_INTERVAL = 1000
+
 /**
  * @returns {String} New case ID
  */
@@ -16,7 +19,7 @@ function createCaseID () {
  * @param {Object} params
  * @param {URI} params.notary
  * @param {Condition} params.receiptCondition
- * @param {[Transfer]} params.transfers
+ * @param {Transfer[]} params.transfers
  * @param {String} params.expiresAt
  * @param {String} params.caseID
  * @returns {Promise<URI>} Case ID
@@ -70,12 +73,12 @@ function postFulfillmentToNotary (finalTransfer, caseID) {
  * @returns {SignedMessageTemplate}
  */
 function * waitForTransferState (transfer, state) {
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < STATE_RETRY_ATTEMPTS; i++) {
     const finalTransferState = yield getTransferState(transfer)
     if (finalTransferState.message.state === state) {
       return finalTransferState
     } else {
-      yield wait(1000)
+      yield wait(STATE_RETRY_INTERVAL)
     }
   }
   throw new Error('Transfer ' + transfer.id + ' still hasn\'t reached state=' + state)
