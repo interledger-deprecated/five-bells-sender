@@ -3,10 +3,13 @@
 const assert = require('assert')
 const nock = require('nock')
 const notaryUtils = require('../src/notaryUtils')
-
-const payments = require('./fixtures/payments.json')
+const clone = require('./helpers').clone
 
 const notary = 'http://notary.example'
+
+beforeEach(function () {
+  this.transfers = clone(require('./fixtures/transfers.json'))
+})
 
 describe('notaryUtils.setupCase', function () {
   it('throws on 400', function * () {
@@ -14,7 +17,7 @@ describe('notaryUtils.setupCase', function () {
     try {
       yield notaryUtils.setupCase({
         notary,
-        payments,
+        transfers: this.transfers,
         receiptCondition: [1],
         expiresAt: '2016-02-02T08:00:02.000Z'
       })
@@ -42,7 +45,7 @@ describe('notaryUtils.setupCase', function () {
 
     const caseID = yield notaryUtils.setupCase({
       notary,
-      payments,
+      transfers: this.transfers,
       receiptCondition: [1],
       expiresAt: '2016-02-02T08:00:02.000Z'
     })
@@ -68,8 +71,8 @@ describe('notaryUtils.setupCase', function () {
     const caseID = notaryUtils.createCaseID()
     const usedCaseID = yield notaryUtils.setupCase({
       notary,
-      payments,
       caseID,
+      transfers: this.transfers,
       receiptCondition: [1],
       expiresAt: '2016-02-02T08:00:02.000Z'
     })
@@ -84,8 +87,8 @@ describe('notaryUtils.setupCase', function () {
     try {
       yield notaryUtils.setupCase({
         notary,
-        payments,
         caseID,
+        transfers: this.transfers,
         receiptCondition: [1],
         expiresAt: '2016-02-02T08:00:02.000Z'
       })
@@ -101,7 +104,10 @@ describe('notaryUtils.postFulfillmentToNotary', function () {
   const caseID = notary + '/cases/123'
 
   it('throws on /fulfillment 400', function * () {
-    const stateNock = nock(transfer.id).get('/state').reply(200, {type: 'ed25519-sha512'})
+    const stateNock = nock(transfer.id).get('/state').reply(200, {
+      type: 'ed25519-sha512',
+      message: { state: 'prepared' }
+    })
     const fulfillNock = nock(caseID).put('/fulfillment').reply(400)
     try {
       yield notaryUtils.postFulfillmentToNotary(transfer, caseID)
@@ -117,7 +123,8 @@ describe('notaryUtils.postFulfillmentToNotary', function () {
   it('posts the type and signature', function * () {
     const stateNock = nock(transfer.id).get('/state').reply(200, {
       type: 'ed25519-sha512',
-      signature: 'abcdefg'
+      signature: 'abcdefg',
+      message: { state: 'prepared' }
     })
     const fulfillNock = nock(caseID).put('/fulfillment', {
       type: 'ed25519-sha512',

@@ -6,16 +6,70 @@ const https = require('https')
 const agents = {}
 
 /**
- * @param {Transfer} transfer
+ * @param {Transfer[]} transfers
+ * @return {Transfer}
+ */
+function setupTransferChain (transfers) {
+  transfers.reduce(function (previousTransfer, transfer) {
+    const credit = previousTransfer.credits[0]
+    if (!credit.memo) credit.memo = {}
+    credit.memo.destination_transfer = transfer
+    return transfer
+  })
+  return transfers[0]
+}
+
+/**
+ * @param {Transfer[]} transfers
+ * @param {Object} params
+ * @param {Boolean} params.isAtomic
+ * @param {Condition} params.executionCondition
+ * @param {Condition} params.cancellationCondition (iff isAtomic)
+ * @param {URI} params.caseID (iff isAtomic)
+ * @returns {Transfer[]}
+ */
+function setupConditions (transfers, params) {
+  const finalTransfer = transfers[transfers.length - 1]
+  // Use one Date.now() as the base of all expiries so that when a ms passes
+  // between when the source and destination expiries are calculated the
+  // minMessageWindow isn't exceeded.
+  const now = Date.now()
+
+  // Add conditions/expirations to all transfers.
+  return transfers.map(function (transfer, i) {
+    // The first transfer must be submitted by us with authorization
+    // TODO: This must be a genuine authorization from the user
+    if (i === 0) transfer.debits[0].authorized = true
+    if (params.isAtomic) {
+      return setupTransferConditionsAtomic(transfer, {
+        executionCondition: params.executionCondition,
+        cancellationCondition: params.cancellationCondition,
+        caseID: params.caseID
+      })
+    } else {
+      const isFinalTransfer = transfer === finalTransfer
+      return setupTransferConditionsUniversal(transfer, {
+        executionCondition: params.executionCondition,
+        now: now,
+        isFinalTransfer: isFinalTransfer
+      })
+    }
+  })
+}
+
+/**
+ * @param {Transfer} _transfer
  * @param {Object} params
  * @param {Condition} params.executionCondition
  * @param {Condition} params.cancellationCondition
  * @param {URI} params.caseID
  * @returns {Transfer}
  */
-function setupTransferConditionsAtomic (transfer, params) {
-  transfer.execution_condition = params.executionCondition
-  transfer.cancellation_condition = params.cancellationCondition
+function setupTransferConditionsAtomic (_transfer, params) {
+  const transfer = Object.assign({}, _transfer, {
+    execution_condition: params.executionCondition,
+    cancellation_condition: params.cancellationCondition
+  })
   transfer.additional_info = transfer.additional_info || {}
   transfer.additional_info.cases = [params.caseID]
   // Atomic transfers don't expire
@@ -89,6 +143,8 @@ function getAgent (auth) {
   return agents[auth.cert] || (agents[auth.cert] = new https.Agent(auth))
 }
 
+exports.setupTransferChain = setupTransferChain
+exports.setupConditions = setupConditions
 exports.setupTransferConditionsAtomic = setupTransferConditionsAtomic
 exports.setupTransferConditionsUniversal = setupTransferConditionsUniversal
 exports.postTransfer = postTransfer

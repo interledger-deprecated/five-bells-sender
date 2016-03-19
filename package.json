@@ -28,7 +28,7 @@
     "canonical-json": "0.0.4",
     "co": "^4.6.0",
     "five-bells-pathfind": "~4.3.0",
-    "five-bells-shared": "~8.10.0",
+    "five-bells-shared": "~12.2.0",
     "superagent": "^1.5.0",
     "node-uuid": "^1.4.7"
   },
@@ -41,7 +41,6 @@
     "babel-preset-es2015": "^6.3.13",
     "babel-preset-stage-0": "^6.3.13",
     "babel-runtime": "^6.3.19",
-    "chai": "^3.5.0",
     "co-mocha": "^1.1.2",
     "eslint": "^1.3.1",
     "eslint-config-standard": "^4.3.1",
