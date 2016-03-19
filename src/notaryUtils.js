@@ -26,11 +26,15 @@ function createCaseID () {
  */
 function setupCase (params) {
   return co(function * () {
-    const uniqueID = params.caseID || uuid()
+    // the caseID param will be in the format of notary/cases/uuid,
+    // only check if its uuid is less than 40 characters
+    const uniqueID = params.caseID ? params.caseID.substring(params.caseID.indexOf('/cases/') + 7) : uuid()
+
     if (uniqueID.length > 40) {
       throw new Error('caseID length is limited to 40 characters')
     }
-    const caseID = params.notary + '/cases/' + uniqueID
+
+    const caseID = params.caseID || params.notary + '/cases/' + uniqueID
     yield request
       .put(caseID)
       .send({
