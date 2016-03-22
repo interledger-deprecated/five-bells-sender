@@ -34,7 +34,13 @@ const validator = require('./validator')
  * Other:
  * @param {Object} params.destinationMemo
  * @param {Object} params.additionalInfo
+ * @param {String} params.caseID - String, uuid.
+ *                                 If not provided, one will be generated.
  * @param {Condition} params.receiptCondition - Object, execution condition.
+ *                                              If not provided, one will be generated.
+ * @param {Condition} params.executionCondition - Object, execution condition.
+ *                                              If not provided, one will be generated.
+ * @param {Condition} params.cancellationCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
@@ -55,7 +61,10 @@ function sendPayment (params) {
     notaryPublicKey: params.notaryPublicKey,
     destinationMemo: params.destinationMemo,
     additionalInfo: params.additionalInfo,
+    caseID: params.caseID,
     receiptCondition: params.receiptCondition,
+    executionCondition: params.executionCondition,
+    cancellationCondition: params.cancellationCondition,
     ca: params.ca
   }))
 }
@@ -82,7 +91,13 @@ function sendPayment (params) {
  * Other:
  * @param {Object} params.destinationMemo
  * @param {Object} params.additionalInfo
+ * @param {String} params.caseID - String, uuid.
+ *                                 If not provided, one will be generated.
  * @param {Condition} params.receiptCondition - Object, execution condition.
+ *                                              If not provided, one will be generated.
+ * @param {Condition} params.executionCondition - Object, execution condition.
+ *                                              If not provided, one will be generated.
+ * @param {Condition} params.cancellationCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
@@ -116,6 +131,7 @@ function executePayment (_subpayments, params) {
 
     const caseID = isAtomic && (yield notaryUtils.setupCase({
       notary: params.notary,
+      caseID: params.caseID,
       receiptCondition: receiptCondition,
       transfers: transfers,
       expiresAt: transferUtils.transferExpiresAt(Date.now(), transfers[0])
@@ -127,8 +143,9 @@ function executePayment (_subpayments, params) {
       notary: params.notary,
       notaryPublicKey: params.notaryPublicKey
     }
-    const executionCondition = conditionUtils.getExecutionCondition(conditionParams)
-    const cancellationCondition = isAtomic && conditionUtils.getCancellationCondition(conditionParams)
+    const executionCondition = params.executionCondition || conditionUtils.getExecutionCondition(conditionParams)
+    const cancellationCondition = isAtomic &&
+      (params.cancellationCondition || conditionUtils.getCancellationCondition(conditionParams))
 
     transfers = transferUtils.setupConditions(transfers, {
       isAtomic,
