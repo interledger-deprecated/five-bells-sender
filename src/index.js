@@ -84,6 +84,7 @@ function sendPayment (params) {
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
+ * @param {String} params.caseID = A notary case ID - if not provided, one will be generated
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
 function executePayment (_subpayments, params) {
@@ -116,6 +117,7 @@ function executePayment (_subpayments, params) {
 
     const caseID = isAtomic && (yield notaryUtils.setupCase({
       notary: params.notary,
+      caseID: params.caseID,
       receiptCondition: receiptCondition,
       transfers: transfers,
       expiresAt: transferUtils.transferExpiresAt(Date.now(), transfers[0])
