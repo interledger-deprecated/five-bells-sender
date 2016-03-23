@@ -35,7 +35,7 @@ describe('notaryUtils.setupCase', function () {
       state: 'proposed',
       execution_condition: [1],
       expires_at: '2016-02-02T08:00:02.000Z',
-      notaries: [{url: notary}],
+      notaries: [notary],
       notification_targets: [
         'http://ledger1.example/transfers/1/fulfillment',
         'http://ledger2.example/transfers/2/fulfillment',
@@ -60,7 +60,7 @@ describe('notaryUtils.setupCase', function () {
       state: 'proposed',
       execution_condition: [1],
       expires_at: '2016-02-02T08:00:02.000Z',
-      notaries: [{url: notary}],
+      notaries: [notary],
       notification_targets: [
         'http://ledger1.example/transfers/1/fulfillment',
         'http://ledger2.example/transfers/2/fulfillment',
