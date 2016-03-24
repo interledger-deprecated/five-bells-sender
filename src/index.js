@@ -32,7 +32,8 @@ const validator = require('./validator')
  * @param {String} params.notaryPublicKey - Base64-encoded public key
  *
  * Other:
- * @param {Object} params.destinationMemo
+ * @param {Object} params.destinationMemo - Memo to be included in the transfer credit of the recipient
+ * @param {Object} params.sourceMemo - Memo to be included in the transfer debit coming from the sender's account
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
@@ -54,6 +55,7 @@ function sendPayment (params) {
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
     destinationMemo: params.destinationMemo,
+    sourceMemo: params.sourceMemo,
     additionalInfo: params.additionalInfo,
     receiptCondition: params.receiptCondition,
     ca: params.ca
@@ -80,7 +82,8 @@ function sendPayment (params) {
  * @param {String} params.notaryPublicKey - Base64-encoded public key
  *
  * Other:
- * @param {Object} params.destinationMemo
+ * @param {Object} params.destinationMemo - Memo to be included in the transfer credit of the recipient
+ * @param {Object} params.sourceMemo - Memo to be included in the transfer debit coming from the sender's account
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
@@ -106,6 +109,9 @@ function executePayment (_subpayments, params) {
 
     if (params.destinationMemo) {
       transfers[transfers.length - 1].credits[0].memo = params.destinationMemo
+    }
+    if (params.sourceMemo) {
+      transfers[0].debits[0].memo = params.sourceMemo
     }
 
     // In universal mode, each transfer executes when the last transfer in the chain
