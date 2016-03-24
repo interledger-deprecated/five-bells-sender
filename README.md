@@ -23,6 +23,8 @@ You can see the visualization in action as part of the [`five-bells-demo`](https
       sourceCert:         fs.readFileSync('./cert.pem'),
       destinationAccount: 'http://localhost:3002/accounts/alice',
       destinationAmount:  '1',
+      // sourceMemo:      { noteToSelf: 'Payment for the other alice' },
+      // destinationMemo: { invoice: '614a67a4-26b4-40f0-a798-bcca35c6e1dd' },
       //additionalInfo:   { sourceAccount: accountUri },
       //ca:               fs.readFileSYnc('./ca.pem')
     }).then(function() {
