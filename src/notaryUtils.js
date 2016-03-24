@@ -38,7 +38,7 @@ function setupCase (params) {
         state: 'proposed',
         execution_condition: params.receiptCondition,
         expires_at: params.expiresAt,
-        notaries: [{url: params.notary}],
+        notaries: [params.notary],
         notification_targets: params.transfers.map(transferToFulfillmentURI)
       })
     return caseID
