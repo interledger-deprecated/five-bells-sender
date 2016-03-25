@@ -75,7 +75,7 @@ describe('conditionUtils.getCancellationCondition', function () {
         type: 'ed25519-sha512',
         signer: notary,
         public_key: 5678,
-        message_hash: 'LUR6zM9B+Jx6D+G/XMhb+OSaw7R6JHJigFcUuccj5ldodUbxqed7y8VhLGCVO24/lKdFExoJJFUutISunQyApw=='
+        message_hash: '/3ozzQOVsHdWdsepnEI8uoAk8LEov7BFzV1+1HfMaQuabSPaPhXbg28z4TstwK2TU2f2iXGm/9kEEcKc2fY2xA=='
       })
   })
 })

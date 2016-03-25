@@ -52,7 +52,7 @@ function getExecutionCondition (params) {
  * @returns {Ed25519_Sha512_Condition}
  */
 function getCancellationCondition (params) {
-  params.state = 'cancelled'
+  params.state = 'rejected'
   return getNotaryCondition(params)
 }
 
