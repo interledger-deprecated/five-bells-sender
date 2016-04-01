@@ -2,11 +2,11 @@
 
 const co = require('co')
 const request = require('superagent')
-const Pathfinder = require('five-bells-pathfind').Pathfinder
 const Payments = require('./payments')
 const transferUtils = require('./transferUtils')
 const notaryUtils = require('./notaryUtils')
 const conditionUtils = require('./conditionUtils')
+const pathUtils = require('./pathUtils')
 const validator = require('./validator')
 
 /**
@@ -187,23 +187,12 @@ function executePayment (_subpayments, params) {
  */
 function findPath (params) {
   return co(function * () {
-    const ledgers = yield Promise.all([
-      getAccountLedger(params.sourceAccount),
-      getAccountLedger(params.destinationAccount)
-    ])
-
-    // TODO cache pathfinder so that it doesn't have to re-crawl for every payment
-    const pathfinder = new Pathfinder({
-      crawler: { initialLedgers: ledgers }
+    const sourceLedger = yield getAccountLedger(params.sourceAccount)
+    const connectorAccounts = yield getLedgerConnectors(sourceLedger)
+    const paths = yield connectorAccounts.map(function (connectorAccount) {
+      return pathUtils.getPathFromConnector(connectorAccount.connector, params)
     })
-    yield pathfinder.crawl()
-    return pathfinder.findPath({
-      sourceLedger: ledgers[0],
-      destinationLedger: ledgers[1],
-      sourceAmount: params.sourceAmount,
-      destinationAmount: params.destinationAmount,
-      destinationAccount: params.destinationAccount
-    })
+    return paths.reduce(pathUtils.getCheaperPath)
   })
 }
 
@@ -227,6 +216,17 @@ function getAccount (account) {
  */
 function getAccountLedger (account) {
   return getAccount(account).then(account => account.ledger)
+}
+
+/**
+ * @param {URI} ledger
+ * @returns {Promise<Object[]>}
+ */
+function getLedgerConnectors (ledger) {
+  return co(function * () {
+    const res = yield request.get(ledger + '/connectors')
+    return res.body
+  })
 }
 
 module.exports = sendPayment
