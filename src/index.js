@@ -7,7 +7,6 @@ const transferUtils = require('./transferUtils')
 const notaryUtils = require('./notaryUtils')
 const conditionUtils = require('./conditionUtils')
 const pathUtils = require('./pathUtils')
-const validator = require('./validator')
 
 /**
  * Create and execute a transaction.
@@ -153,7 +152,6 @@ function executePayment (_subpayments, params) {
     // Prepare the first transfer.
     const sourceUsername = (yield getAccount(params.sourceAccount)).name
     const firstTransfer = transferUtils.setupTransferChain(transfers)
-    validator.validateTransfer(firstTransfer)
     firstTransfer.state = yield transferUtils.postTransfer(firstTransfer, {
       username: sourceUsername,
       password: params.sourcePassword,
