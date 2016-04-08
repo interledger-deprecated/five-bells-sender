@@ -85,11 +85,11 @@ function sendPayment (params) {
  * @param {Object} params.destinationMemo - Memo to be included in the transfer credit of the recipient
  * @param {Object} params.sourceMemo - Memo to be included in the transfer debit coming from the sender's account
  * @param {Object} params.additionalInfo
- * @param {Condition} params.receiptCondition - Object, execution condition.
+ * @param {Condition} params.receiptCondition - Object, notary case execution condition.
  *                                              If not provided, one will be generated.
- * @param {Condition} params.executionCondition - Object, execution condition.
+ * @param {Condition} params.executionCondition - Object, transfer execution condition.
  *                                              If not provided, one will be generated.
- * @param {Condition} params.cancellationCondition - Object, cancellation condition.
+ * @param {Condition} params.cancellationCondition - Object, transfer cancellation condition.
  *                                              If not provided, one will be generated.
  * @param {String} params.caseID = A notary case ID - if not provided, one will be generated
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
