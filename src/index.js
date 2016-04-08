@@ -89,7 +89,7 @@ function sendPayment (params) {
  *                                              If not provided, one will be generated.
  * @param {Condition} params.executionCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
- * @param {Condition} params.cancellationCondition - Object, execution condition.
+ * @param {Condition} params.cancellationCondition - Object, cancellation condition.
  *                                              If not provided, one will be generated.
  * @param {String} params.caseID = A notary case ID - if not provided, one will be generated
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
