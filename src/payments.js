@@ -5,6 +5,8 @@ const uuid = require('node-uuid').v4
 /**
  * @param {Payment[]} payments
  * @param {URI} sourceAccount
+ * @param {URI} destinationAccount
+ * @param {Object} additionalInfo
  * @returns {Payment[]}
  */
 function setupTransfers (payments, sourceAccount, destinationAccount, additionalInfo) {
@@ -14,7 +16,7 @@ function setupTransfers (payments, sourceAccount, destinationAccount, additional
   payments.forEach(function (payment, i) {
     validateOneToOnePayment(payment)
     const transfer = payment.source_transfers[0]
-    transfer.id = transfer.ledger + '/transfers/' + uuid()
+    transfer.id = transfer.id || transfer.ledger + '/transfers/' + uuid()
     transfer.additional_info = Object.assign({}, additionalInfo)
     transfer.additional_info.part_of_payment = payment.id
 
@@ -32,7 +34,7 @@ function setupTransfers (payments, sourceAccount, destinationAccount, additional
   // Create final (rightmost) transfer
   const finalPayment = payments[payments.length - 1]
   const finalTransfer = finalPayment.destination_transfers[0]
-  finalTransfer.id = finalTransfer.ledger + '/transfers/' + uuid()
+  finalTransfer.id = finalTransfer.id || finalTransfer.ledger + '/transfers/' + uuid()
   finalTransfer.additional_info = Object.assign({}, additionalInfo)
   finalTransfer.additional_info.part_of_payment = finalPayment.id
   finalTransfer.credits[0].account = destinationAccount
