@@ -33,25 +33,26 @@ describe('transferUtils.setupTransferChain', function () {
 
 describe('transferUtils.setupConditions', function () {
   it('authorizes the first debit', function () {
+    const executionCondition = '4QRmhUtrxlwQYaO+c8K2BtCd6c4D8HVmy5fLDSjsH6A='
     const transfers = transferUtils.setupConditions(this.setupTransfers, {
       isAtomic: false,
-      executionCondition: [0]
+      executionCondition: executionCondition
     })
     assert.strictEqual(transfers[0].debits[0].authorized, true)
-    assert.deepEqual(transfers[0].execution_condition, [0])
-    assert.deepEqual(transfers[transfers.length - 1].execution_condition, undefined)
+    assert.deepEqual(transfers[0].execution_condition, executionCondition)
+    assert.deepEqual(transfers[transfers.length - 1].execution_condition, executionCondition)
   })
 })
 
 describe('transferUtils.setupTransferConditionsAtomic', function () {
   it('adds conditions and cases', function () {
-    const executionCondition = [1]
-    const cancellationCondition = [2]
+    const executionCondition = 'cc:2:2f:iJDUYZFO49HAOnYWVPNkF6QNrzvF7rWbVoOZjiIOqzc:142'
+    const cancellationCondition = 'cc:1:25:xQ9r0aMDlFYcaicrjVyIEqO8f7ZtWx7vsf9iGhuyMEw:121'
     assert.deepEqual(
       transferUtils.setupTransferConditionsAtomic({
         id: transfer.id,
         expiry_duration: 1
-      }, {caseID: 123, executionCondition, cancellationCondition}),
+      }, {caseId: 123, executionCondition, cancellationCondition}),
       {
         id: transfer.id,
         execution_condition: executionCondition,
@@ -62,30 +63,17 @@ describe('transferUtils.setupTransferConditionsAtomic', function () {
 })
 
 describe('transferUtils.setupTransferConditionsUniversal', function () {
-  it('adds the execution_condition when isFinalTransfer=false', function () {
-    const executionCondition = [1]
+  it('adds the execution_condition', function () {
+    const executionCondition = '4QRmhUtrxlwQYaO+c8K2BtCd6c4D8HVmy5fLDSjsH6A='
     assert.deepEqual(
       transferUtils.setupTransferConditionsUniversal({
         id: transfer.id,
         expiry_duration: 1
-      }, {isFinalTransfer: false, now, executionCondition}),
+      }, {now, executionCondition}),
       {
         id: transfer.id,
         expires_at: '2016-02-02T08:00:01.000Z',
         execution_condition: executionCondition
-      })
-  })
-
-  it('doesn\'t add the execution_condition when isFinalTransfer=true', function () {
-    const executionCondition = {}
-    assert.deepEqual(
-      transferUtils.setupTransferConditionsUniversal({
-        id: transfer.id,
-        expiry_duration: 1
-      }, {isFinalTransfer: true, now, executionCondition}),
-      {
-        id: transfer.id,
-        expires_at: '2016-02-02T08:00:01.000Z'
       })
   })
 })
@@ -146,26 +134,5 @@ describe('transferUtils.transferExpiresAt', function () {
     assert.equal(
       transferUtils.transferExpiresAt(1454400000000, {expiry_duration: 2}),
       '2016-02-02T08:00:02.000Z')
-  })
-})
-
-describe('transferUtils.getTransferState', function () {
-  it('returns the response body on 200', function * () {
-    const transferNock = nock(transfer.id).get('/state').reply(200, {foo: 'bar'})
-    const body = yield transferUtils.getTransferState(transfer)
-    assert.deepEqual(body, {foo: 'bar'})
-    transferNock.done()
-  })
-
-  it('should throw an error on 400', function * () {
-    const transferNock = nock(transfer.id).get('/state').reply(400)
-    try {
-      yield transferUtils.getTransferState(transfer)
-    } catch (err) {
-      assert.equal(err.status, 400)
-      transferNock.done()
-      return
-    }
-    assert(false)
   })
 })
