@@ -25,11 +25,10 @@ function setupTransferChain (transfers) {
  * @param {Boolean} params.isAtomic
  * @param {Condition} params.executionCondition
  * @param {Condition} params.cancellationCondition (iff isAtomic)
- * @param {URI} params.caseID (iff isAtomic)
+ * @param {URI} params.caseId (iff isAtomic)
  * @returns {Transfer[]}
  */
 function setupConditions (transfers, params) {
-  const finalTransfer = transfers[transfers.length - 1]
   // Use one Date.now() as the base of all expiries so that when a ms passes
   // between when the source and destination expiries are calculated the
   // minMessageWindow isn't exceeded.
@@ -44,14 +43,12 @@ function setupConditions (transfers, params) {
       return setupTransferConditionsAtomic(transfer, {
         executionCondition: params.executionCondition,
         cancellationCondition: params.cancellationCondition,
-        caseID: params.caseID
+        caseId: params.caseId
       })
     } else {
-      const isFinalTransfer = transfer === finalTransfer
       return setupTransferConditionsUniversal(transfer, {
         executionCondition: params.executionCondition,
-        now: now,
-        isFinalTransfer: isFinalTransfer
+        now: now
       })
     }
   })
@@ -62,7 +59,7 @@ function setupConditions (transfers, params) {
  * @param {Object} params
  * @param {Condition} params.executionCondition
  * @param {Condition} params.cancellationCondition
- * @param {URI} params.caseID
+ * @param {URI} params.caseId
  * @returns {Transfer}
  */
 function setupTransferConditionsAtomic (_transfer, params) {
@@ -71,7 +68,7 @@ function setupTransferConditionsAtomic (_transfer, params) {
     cancellation_condition: params.cancellationCondition
   })
   transfer.additional_info = transfer.additional_info || {}
-  transfer.additional_info.cases = [params.caseID]
+  transfer.additional_info.cases = [params.caseId]
   // Atomic transfers don't expire
   // (or rather, their expiry is handled by the cancellation_condition).
   delete transfer.expiry_duration
@@ -82,15 +79,12 @@ function setupTransferConditionsAtomic (_transfer, params) {
  * @param {Transfer} transfer
  * @param {Object} params
  * @param {Integer} params.now
- * @param {Boolean} params.isFinalTransfer
  * @param {Condition} params.executionCondition
  * @returns {Transfer}
  */
 function setupTransferConditionsUniversal (transfer, params) {
   transfer.expires_at = transferExpiresAt(params.now, transfer)
-  if (!params.isFinalTransfer) {
-    transfer.execution_condition = params.executionCondition
-  }
+  transfer.execution_condition = params.executionCondition
   delete transfer.expiry_duration
   return transfer
 }
@@ -128,17 +122,6 @@ function transferExpiresAt (now, transfer) {
   return (new Date(now + (transfer.expiry_duration * 1000))).toISOString()
 }
 
-/**
- * @param {Transfer} transfer
- * @returns {Promise<Object>}
- */
-function getTransferState (transfer) {
-  return co(function * () {
-    const transferStateRes = yield request.get(transfer.id + '/state')
-    return transferStateRes.body
-  })
-}
-
 function getAgent (auth) {
   return agents[auth.cert] || (agents[auth.cert] = new https.Agent(auth))
 }
@@ -149,4 +132,3 @@ exports.setupTransferConditionsAtomic = setupTransferConditionsAtomic
 exports.setupTransferConditionsUniversal = setupTransferConditionsUniversal
 exports.postTransfer = postTransfer
 exports.transferExpiresAt = transferExpiresAt
-exports.getTransferState = getTransferState

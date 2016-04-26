@@ -30,6 +30,7 @@ const validator = require('./validator')
  * Required for Atomic mode only:
  * @param {URI} params.notary - Notary URI (if provided, use Atomic mode)
  * @param {String} params.notaryPublicKey - Base64-encoded public key
+ * @param {String} params.caseId - User-provided UUID for notary case
  *
  * Other:
  * @param {Object} params.destinationMemo - Memo to be included in the transfer credit of the recipient
@@ -54,6 +55,7 @@ function sendPayment (params) {
     destinationAccount: params.destinationAccount,
     notary: params.notary,
     notaryPublicKey: params.notaryPublicKey,
+    caseId: params.caseId,
     destinationMemo: params.destinationMemo,
     sourceMemo: params.sourceMemo,
     additionalInfo: params.additionalInfo,
@@ -84,14 +86,13 @@ function sendPayment (params) {
  * Other:
  * @param {Object} params.destinationMemo - Memo to be included in the transfer credit of the recipient
  * @param {Object} params.sourceMemo - Memo to be included in the transfer debit coming from the sender's account
- * @param {Object} params.additionalInfo
- * @param {Condition} params.receiptCondition - Object, execution condition.
- *                                              If not provided, one will be generated.
- * @param {Condition} params.executionCondition - Object, execution condition.
- *                                              If not provided, one will be generated.
- * @param {Condition} params.cancellationCondition - Object, cancellation condition.
- *                                              If not provided, one will be generated.
- * @param {String} params.caseID = A notary case ID - if not provided, one will be generated
+ * @param {Object} [params.additionalInfo]
+ * @param {String} params.receiptCondition - Condition describing the receipt
+ * @param {String} [params.executionCondition] - Execution condition.
+ *   If not provided, one will be generated.
+ * @param {String} [params.cancellationCondition] - Object, cancellation condition.
+ *   If not provided, one will be generated.
+ * @param {String} [params.caseId] = A notary case ID - if not provided, one will be generated
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
 function executePayment (_subpayments, params) {
@@ -114,20 +115,22 @@ function executePayment (_subpayments, params) {
       transfers[0].debits[0].memo = params.sourceMemo
     }
 
-    // In universal mode, each transfer executes when the last transfer in the chain
-    // has executed. The final one in the chain executes when all are prepared.
+    // In universal mode, all transfers are prepared. Then the recipient
+    // executes the transfer on the final ledger by providing a receipt. This
+    // then triggers a chain of executions back to the sender.
     //
-    // In atomic mode, all transfers execute when the notary has confirmation
-    // that all of the transfers are prepared.
-    const receiptConditionState = isAtomic ? 'prepared' : 'executed'
-    const receiptCondition = params.receiptCondition ||
-      (yield conditionUtils.getReceiptCondition(
-        transfers[transfers.length - 1],
-        receiptConditionState))
+    // In atomic mode, all transfers execute when the notary receives the
+    // receipt and notifies the ledgers that it was received on time.
+    const receiptCondition = params.receiptCondition
 
-    const caseID = isAtomic && (yield notaryUtils.setupCase({
+    // TODO: We could use optimistic mode if no receipt condition was specified.
+    if (!receiptCondition) {
+      throw new Error('Missing required parameter: receiptCondition')
+    }
+
+    const caseId = isAtomic && (yield notaryUtils.setupCase({
       notary: params.notary,
-      caseID: params.caseID,
+      caseId: params.caseID || params.caseId,
       receiptCondition: receiptCondition,
       transfers: transfers,
       expiresAt: transferUtils.transferExpiresAt(Date.now(), transfers[0])
@@ -135,7 +138,7 @@ function executePayment (_subpayments, params) {
 
     const conditionParams = {
       receiptCondition: receiptCondition,
-      caseID: caseID,
+      caseId,
       notary: params.notary,
       notaryPublicKey: params.notaryPublicKey
     }
@@ -147,7 +150,7 @@ function executePayment (_subpayments, params) {
       isAtomic,
       executionCondition,
       cancellationCondition,
-      caseID
+      caseId
     })
 
     // Prepare the first transfer.
@@ -162,12 +165,6 @@ function executePayment (_subpayments, params) {
       ca: params.ca
     })
 
-    // Execution (atomic)
-    // If a custom receiptCondition is used, it is the recipient's
-    // job to post fulfillment.
-    if (isAtomic && !params.receiptCondition) {
-      yield notaryUtils.postFulfillmentToNotary(transfers[transfers.length - 1], caseID)
-    }
     return transfers
   })
 }

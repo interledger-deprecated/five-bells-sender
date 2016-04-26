@@ -1,55 +1,34 @@
 'use strict'
 
-const crypto = require('crypto')
-const stringifyJSON = require('canonical-json')
+const cc = require('five-bells-condition')
 const makeCaseAttestation = require('five-bells-shared/utils/makeCaseAttestation')
-const getTransferState = require('./transferUtils').getTransferState
-
-/**
- * @param {Transfer} finalTransfer
- * @param {TransferState} state "prepared" | "executed"
- * @returns {Promise<Condition>}
- */
-function getReceiptCondition (finalTransfer, state) {
-  // Execution condition is the final transfer in the chain
-  return getTransferState(finalTransfer)
-    .then(finalTransferState => ({
-      message_hash: hashJSON({
-        id: finalTransfer.id,
-        state: state
-      }),
-      signer: finalTransfer.ledger,
-      public_key: finalTransferState.public_key,
-      type: finalTransferState.type
-    }))
-}
 
 /**
  * Get the compound execution_condition.
  * @param {Object} params
- * @param {Condition} params.receiptCondition
+ * @param {String} params.receiptCondition Receipt condition
  * @param {URI} params.notary (optional)
- * @param {URI} params.caseID (required iff params.notary)
+ * @param {URI} params.caseId (required iff params.notary)
  * @param {String} params.notaryPublicKey (required iff params.notary)
- * @returns {Condition}
+ * @returns {String} Execution condition
  */
 function getExecutionCondition (params) {
-  params.state = 'executed'
-  return params.notary ? {
-    type: 'and',
-    subconditions: [
-      getNotaryCondition(params),
-      params.receiptCondition
-    ]
-  } : params.receiptCondition
+  if (!params.notary) return params.receiptCondition
+
+  const condition = new cc.ThresholdSha256()
+  condition.addSubconditionUri(params.receiptCondition)
+  const notaryConditionParams = Object.assign({}, params, { state: 'executed' })
+  condition.addSubconditionUri(getNotaryCondition(notaryConditionParams))
+  condition.setThreshold(2)
+  return condition.getConditionUri()
 }
 
 /**
  * @param {Object} params
- * @param {URI} params.caseID
+ * @param {URI} params.caseId
  * @param {URI} params.notary
  * @param {String} params.notaryPublicKey
- * @returns {Ed25519_Sha512_Condition}
+ * @returns {String} Cancellation condition
  */
 function getCancellationCondition (params) {
   params.state = 'rejected'
@@ -59,32 +38,20 @@ function getCancellationCondition (params) {
 /**
  * @param {Object} params
  * @param {String} params.state "executed" or "cancelled"
- * @param {URI} params.caseID
+ * @param {URI} params.caseId
  * @param {URI} params.notary
  * @param {String} params.notaryPublicKey base64
- * @returns {Ed25519_Sha512_Condition}
+ * @returns {String} Notary condition
  */
 function getNotaryCondition (params) {
-  return {
-    type: 'ed25519-sha512',
-    signer: params.notary,
-    public_key: params.notaryPublicKey,
-    message_hash: sha512(makeCaseAttestation(params.caseID, params.state))
-  }
+  const signatureCondition = new cc.Ed25519()
+  signatureCondition.setPublicKey(new Buffer(params.notaryPublicKey, 'base64'))
+  const attestationUri = makeCaseAttestation(params.caseId, params.state)
+  const condition = new cc.PrefixSha256()
+  condition.setPrefix(new Buffer(attestationUri, 'utf8'))
+  condition.setSubfulfillment(signatureCondition)
+  return condition.getConditionUri()
 }
 
-// /////////////////////////////////////////////////////////////////////////////
-// Utilities
-// /////////////////////////////////////////////////////////////////////////////
-
-function hashJSON (object) {
-  return sha512(stringifyJSON(object))
-}
-
-function sha512 (str) {
-  return crypto.createHash('sha512').update(str).digest('base64')
-}
-
-exports.getReceiptCondition = getReceiptCondition
 exports.getExecutionCondition = getExecutionCondition
 exports.getCancellationCondition = getCancellationCondition
