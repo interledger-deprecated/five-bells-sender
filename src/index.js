@@ -2,11 +2,10 @@
 
 const co = require('co')
 const request = require('superagent')
-const Payments = require('./payments')
 const transferUtils = require('./transferUtils')
 const notaryUtils = require('./notaryUtils')
 const conditionUtils = require('./conditionUtils')
-const pathUtils = require('./pathUtils')
+const quoteUtils = require('./quoteUtils')
 const validator = require('./validator')
 
 /**
@@ -46,8 +45,7 @@ function sendPayment (params) {
     destinationAccount: params.destinationAccount,
     sourceAmount: params.sourceAmount,
     destinationAmount: params.destinationAmount
-  })
-  .then((subpayments) => executePayment(subpayments, {
+  }).then((quote) => executePayment(quote, {
     sourceAccount: params.sourceAccount,
     sourcePassword: params.sourcePassword,
     sourceKey: params.sourceKey,
@@ -67,7 +65,7 @@ function sendPayment (params) {
 /**
  * Execute a transaction.
  *
- * @param {Object[]} _subpayments - The quoted payment path.
+ * @param {Object[]} quote - The quoted payment path.
  * @param {Object} params
  *
  * Required for both modes:
@@ -95,24 +93,20 @@ function sendPayment (params) {
  * @param {String} [params.caseId] = A notary case ID - if not provided, one will be generated
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
-function executePayment (_subpayments, params) {
+function executePayment (quote, params) {
   return co(function * () {
     const isAtomic = !!params.notary
     if (isAtomic && !params.notaryPublicKey) {
       throw new Error('Missing required parameter: notaryPublicKey')
     }
 
-    const subpayments = Payments.setupTransfers(_subpayments,
-      params.sourceAccount,
-      params.destinationAccount,
-      params.additionalInfo)
-    let transfers = Payments.toTransfers(subpayments)
+    let sourceTransfer = transferUtils.setupTransfers(quote, params.additionalInfo)
 
     if (params.destinationMemo) {
-      transfers[transfers.length - 1].credits[0].memo = params.destinationMemo
+      getDestinationTransfer(sourceTransfer).credits[0].memo = params.destinationMemo
     }
     if (params.sourceMemo) {
-      transfers[0].debits[0].memo = params.sourceMemo
+      sourceTransfer.debits[0].memo = params.sourceMemo
     }
 
     // In universal mode, all transfers are prepared. Then the recipient
@@ -132,8 +126,8 @@ function executePayment (_subpayments, params) {
       notary: params.notary,
       caseId: params.caseID || params.caseId,
       receiptCondition: receiptCondition,
-      transfers: transfers,
-      expiresAt: transferUtils.transferExpiresAt(Date.now(), transfers[0])
+      transfers: [sourceTransfer, getDestinationTransfer(sourceTransfer)],
+      expiresAt: transferUtils.transferExpiresAt(Date.now(), sourceTransfer)
     }))
 
     const conditionParams = {
@@ -146,7 +140,7 @@ function executePayment (_subpayments, params) {
     const executionCondition = params.executionCondition || conditionUtils.getExecutionCondition(conditionParams)
     const cancellationCondition = isAtomic && (params.cancellationCondition || conditionUtils.getCancellationCondition(conditionParams))
 
-    transfers = transferUtils.setupConditions(transfers, {
+    sourceTransfer = transferUtils.setupConditions(sourceTransfer, {
       isAtomic,
       executionCondition,
       cancellationCondition,
@@ -154,10 +148,9 @@ function executePayment (_subpayments, params) {
     })
 
     // Prepare the first transfer.
+    validator.validateTransfer(sourceTransfer)
     const sourceUsername = (yield getAccount(params.sourceAccount)).name
-    const firstTransfer = transferUtils.setupTransferChain(transfers)
-    validator.validateTransfer(firstTransfer)
-    firstTransfer.state = yield transferUtils.postTransfer(firstTransfer, {
+    sourceTransfer.state = yield transferUtils.postTransfer(sourceTransfer, {
       username: sourceUsername,
       password: params.sourcePassword,
       key: params.sourceKey,
@@ -165,7 +158,7 @@ function executePayment (_subpayments, params) {
       ca: params.ca
     })
 
-    return transfers
+    return sourceTransfer
   })
 }
 
@@ -180,16 +173,17 @@ function executePayment (_subpayments, params) {
  * Exactly one of the following:
  * @param {String} params.sourceAmount
  * @param {String} params.destinationAmount
- * @returns {Promise} an Array of subpayments
+ * @returns {Promise<Transfer>}
  */
 function findPath (params) {
   return co(function * () {
     const sourceLedger = yield getAccountLedger(params.sourceAccount)
     const connectorAccounts = yield getLedgerConnectors(sourceLedger)
     const paths = yield connectorAccounts.map(function (connectorAccount) {
-      return pathUtils.getPathFromConnector(connectorAccount.connector, params)
+      return quoteUtils.getQuoteFromConnector(connectorAccount.connector, params)
     })
-    return paths.reduce(pathUtils.getCheaperPath)
+    if (!paths.length) return
+    return paths.reduce(quoteUtils.getCheaperQuote)
   })
 }
 
@@ -224,6 +218,14 @@ function getLedgerConnectors (ledger) {
     const res = yield request.get(ledger + '/connectors')
     return res.body
   })
+}
+
+/**
+ * @param {Transfer} transfer
+ * @returns {Transfer}
+ */
+function getDestinationTransfer (transfer) {
+  return transfer.credits[0].memo.destination_transfer
 }
 
 module.exports = sendPayment

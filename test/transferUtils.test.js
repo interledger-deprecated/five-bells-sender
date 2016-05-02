@@ -7,40 +7,48 @@ const https = require('https')
 const assert = require('assert')
 const nock = require('nock')
 const clone = require('./helpers').clone
-const Payments = require('../src/payments')
 const transferUtils = require('../src/transferUtils')
 
 const transfer = { id: 'http://ledger.example/transfers/1234' }
 const now = 1454400000000
 
+const alice = 'http://usd-ledger.example/accounts/alice'
+const bob = 'http://eur-ledger.example/accounts/bob'
+
 beforeEach(function () {
-  this.quotes = clone(require('./fixtures/quotes.json'))
-  this.setupTransfers = Payments.toTransfers(
-    Payments.setupTransfers(this.quotes,
-      'http://usd-ledger.example/accounts/alice',
-      'http://eur-ledger.example/accounts/bob'))
+  this.quote = clone(require('./fixtures/quote.json'))
+  this.setupTransfer = transferUtils.setupTransfers(this.quote, alice, bob)
   this.transfers = clone(require('./fixtures/transfers.json'))
 })
 
-describe('transferUtils.setupTransferChain', function () {
-  it('makes a transfer chain', function () {
-    const chain = transferUtils.setupTransferChain(this.transfers)
-    assert.deepEqual(chain, this.transfers[0])
-    assert.deepEqual(chain.credits[0].memo.destination_transfer, this.transfers[1])
-    assert.deepEqual(this.transfers[1].credits[0].memo.destination_transfer, this.transfers[2])
+describe('transferUtils.setupTransfers', function () {
+  it('sets up a valid payment', function () {
+    assert(isTransferID('usd', this.setupTransfer.id))
+    assert(isTransferID('eur', this.setupTransfer.credits[0].memo.destination_transfer.id))
+  })
+
+  it('should use provided transfer IDs', function () {
+    const sourceTransferId = 'http://eur-ledger.example/transfers/d3170b2b-7b98-4528-8ace-d810460dbe15'
+    const destinationTransferId = 'http://eur-ledger.example/transfers/35bc13b3-b929-446d-9ed7-e78d75abef07'
+    const quote = clone(this.quote)
+    quote.id = sourceTransferId
+    quote.credits[0].memo.destination_transfer.id = destinationTransferId
+    const transfer = transferUtils.setupTransfers(quote, alice, bob)
+    assert.equal(transfer.id, sourceTransferId)
+    assert.equal(transfer.credits[0].memo.destination_transfer.id, destinationTransferId)
   })
 })
 
 describe('transferUtils.setupConditions', function () {
   it('authorizes the first debit', function () {
     const executionCondition = '4QRmhUtrxlwQYaO+c8K2BtCd6c4D8HVmy5fLDSjsH6A='
-    const transfers = transferUtils.setupConditions(this.setupTransfers, {
+    const transfer = transferUtils.setupConditions(this.setupTransfer, {
       isAtomic: false,
       executionCondition: executionCondition
     })
-    assert.strictEqual(transfers[0].debits[0].authorized, true)
-    assert.deepEqual(transfers[0].execution_condition, executionCondition)
-    assert.deepEqual(transfers[transfers.length - 1].execution_condition, executionCondition)
+    assert.strictEqual(transfer.debits[0].authorized, true)
+    assert.deepEqual(transfer.execution_condition, executionCondition)
+    assert.deepEqual(transfer.credits[0].memo.destination_transfer.execution_condition, executionCondition)
   })
 })
 
@@ -136,3 +144,8 @@ describe('transferUtils.transferExpiresAt', function () {
       '2016-02-02T08:00:02.000Z')
   })
 })
+
+function isTransferID (prefix, transfer_id) {
+  const pattern = new RegExp('^http://' + prefix + '-ledger\\.example/transfers/[\\w-]+$')
+  return pattern.test(transfer_id)
+}

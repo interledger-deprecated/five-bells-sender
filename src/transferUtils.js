@@ -1,26 +1,26 @@
 'use strict'
 
+const uuid = require('node-uuid').v4
 const co = require('co')
 const request = require('superagent')
 const https = require('https')
 const agents = {}
 
 /**
- * @param {Transfer[]} transfers
- * @return {Transfer}
+ * @param {Transfer} sourceTransfer
+ * @param {Object} additionalInfo
+ * @returns {Transfer}
  */
-function setupTransferChain (transfers) {
-  transfers.reduce(function (previousTransfer, transfer) {
-    const credit = previousTransfer.credits[0]
-    if (!credit.memo) credit.memo = {}
-    credit.memo.destination_transfer = transfer
+function setupTransfers (sourceTransfer, additionalInfo) {
+  return mapTransferChain(sourceTransfer, function (transfer) {
+    transfer.id = transfer.id || transfer.ledger + '/transfers/' + uuid()
+    transfer.additional_info = Object.assign({}, additionalInfo)
     return transfer
   })
-  return transfers[0]
 }
 
 /**
- * @param {Transfer[]} transfers
+ * @param {Transfer} sourceTransfer
  * @param {Object} params
  * @param {Boolean} params.isAtomic
  * @param {Condition} params.executionCondition
@@ -28,17 +28,18 @@ function setupTransferChain (transfers) {
  * @param {URI} params.caseId (iff isAtomic)
  * @returns {Transfer[]}
  */
-function setupConditions (transfers, params) {
+function setupConditions (sourceTransfer, params) {
   // Use one Date.now() as the base of all expiries so that when a ms passes
   // between when the source and destination expiries are calculated the
   // minMessageWindow isn't exceeded.
   const now = Date.now()
 
+  // The first transfer must be submitted by us with authorization
+  // TODO: This must be a genuine authorization from the user
+  sourceTransfer.debits[0].authorized = true
+
   // Add conditions/expirations to all transfers.
-  return transfers.map(function (transfer, i) {
-    // The first transfer must be submitted by us with authorization
-    // TODO: This must be a genuine authorization from the user
-    if (i === 0) transfer.debits[0].authorized = true
+  return mapTransferChain(sourceTransfer, function (transfer) {
     if (params.isAtomic) {
       return setupTransferConditionsAtomic(transfer, {
         executionCondition: params.executionCondition,
@@ -52,6 +53,20 @@ function setupConditions (transfers, params) {
       })
     }
   })
+}
+
+/**
+ * @param {Transfer} firstTransfer
+ * @param {Function(transfer) -> newTransfer} each
+ * @returns {Transfer} the new first transfer
+ */
+function mapTransferChain (firstTransfer, each) {
+  const newFirstTransfer = each(firstTransfer)
+  const memo = newFirstTransfer.credits[0].memo
+  if (memo && memo.destination_transfer) {
+    memo.destination_transfer = mapTransferChain(memo.destination_transfer, each)
+  }
+  return newFirstTransfer
 }
 
 /**
@@ -126,7 +141,7 @@ function getAgent (auth) {
   return agents[auth.cert] || (agents[auth.cert] = new https.Agent(auth))
 }
 
-exports.setupTransferChain = setupTransferChain
+exports.setupTransfers = setupTransfers
 exports.setupConditions = setupConditions
 exports.setupTransferConditionsAtomic = setupTransferConditionsAtomic
 exports.setupTransferConditionsUniversal = setupTransferConditionsUniversal
