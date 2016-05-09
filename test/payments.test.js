@@ -49,12 +49,15 @@ describe('Payments.setupTransfers', function () {
     assert.equal(payment.destination_transfers[0].credits[0].account, bob)
   })
 
-  it('should use provided transfer ID', function () {
-    const transferID = 'http://eur-ledger.example/transfers/35bc13b3-b929-446d-9ed7-e78d75abef07'
+  it('should use provided transfer IDs', function () {
+    const sourceTransferId = 'http://eur-ledger.example/transfers/d3170b2b-7b98-4528-8ace-d810460dbe15'
+    const destinationTransferID = 'http://eur-ledger.example/transfers/35bc13b3-b929-446d-9ed7-e78d75abef07'
     const quote = clone(this.quote)
-    quote[0].destination_transfers[0].id = transferID
+    quote[0].source_transfers[0].id = sourceTransferId
+    quote[0].destination_transfers[0].id = destinationTransferID
     const payment = Payments.setupTransfers(quote, alice, bob)[0]
-    assert(transferID === payment.destination_transfers[0].id)
+    assert(sourceTransferId === payment.source_transfers[0].id)
+    assert(destinationTransferID === payment.destination_transfers[0].id)
   })
 
   it('setups up valid payments', function () {
