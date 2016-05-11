@@ -6,7 +6,6 @@ const transferUtils = require('./transferUtils')
 const notaryUtils = require('./notaryUtils')
 const conditionUtils = require('./conditionUtils')
 const quoteUtils = require('./quoteUtils')
-const validator = require('./validator')
 
 /**
  * Create and execute a transaction.
@@ -148,7 +147,6 @@ function executePayment (quote, params) {
     })
 
     // Prepare the first transfer.
-    validator.validateTransfer(sourceTransfer)
     const sourceUsername = (yield getAccount(params.sourceAccount)).name
     sourceTransfer.state = yield transferUtils.postTransfer(sourceTransfer, {
       username: sourceUsername,
