@@ -64,7 +64,7 @@ function sendPayment (params) {
 /**
  * Execute a transaction.
  *
- * @param {Object[]} quote - The quoted payment path.
+ * @param {Transfer} quote - The quoted payment path.
  * @param {Object} params
  *
  * Required for both modes:
@@ -175,16 +175,45 @@ function executePayment (quote, params) {
  * @param {String} params.destinationAmount
  * @returns {Promise<Transfer>}
  */
-function findPath (params) {
+function findPath (_params) {
   return co(function * () {
-    const sourceLedger = yield getAccountLedger(params.sourceAccount)
-    const connectorAccounts = yield getLedgerConnectors(sourceLedger)
-    const paths = yield connectorAccounts.map(function (connectorAccount) {
+    const params = Object.assign({}, _params, {
+      sourceLedger: yield getAccountLedger(_params.sourceAccount),
+      destinationLedger: yield getAccountLedger(_params.destinationAccount)
+    })
+    // Same-ledger payment.
+    if (params.sourceLedger === params.destinationLedger) {
+      return getLocalTransfer(params.sourceLedger, params)
+    }
+
+    const connectorAccounts = yield getLedgerConnectors(params.sourceLedger)
+    const quotes = yield connectorAccounts.map(function (connectorAccount) {
       return quoteUtils.getQuoteFromConnector(connectorAccount.connector, params)
     })
-    if (!paths.length) return
-    return paths.reduce(quoteUtils.getCheaperQuote)
+    if (!quotes.length) return
+    return quoteUtils.quoteToTransfer(quotes.reduce(quoteUtils.getCheaperQuote),
+      params.sourceAccount,
+      params.destinationAccount)
   })
+}
+
+/**
+ * @param {URI} ledger
+ * @param {Object} params
+ * @param {String} params.sourceAccount
+ * @param {String} params.destinationAccount
+ * Exactly one of the following:
+ * @param {String} params.sourceAmount
+ * @param {String} params.destinationAmount
+ * @returns {Transfer}
+ */
+function getLocalTransfer (ledger, params) {
+  const amount = params.sourceAmount || params.destinationAmount
+  return {
+    ledger: ledger,
+    debits: [{account: params.sourceAccount, amount: amount}],
+    credits: [{account: params.destinationAccount, amount: amount}]
+  }
 }
 
 /**
