@@ -15,7 +15,7 @@ const BigNumber = require('bignumber.js')
  * Exactly one of the following:
  * @param {String} params.sourceAmount
  * @param {String} params.destinationAmount
- * @returns {Promise<Transfer>}
+ * @returns {Promise<Quote>}
  */
 function getQuoteFromConnector (connector, params) {
   return co(function * () {
