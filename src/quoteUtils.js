@@ -9,6 +9,8 @@ const BigNumber = require('bignumber.js')
  * @param {Object} params
  * @param {String} params.sourceAccount
  * @param {String} params.destinationAccount
+ * @param {Number} params.destinationExpiryDuration
+ * @param {Number} params.sourceExpiryDuration
  * Exactly one of the following:
  * @param {String} params.sourceAmount
  * @param {String} params.destinationAmount
@@ -20,7 +22,8 @@ function getQuoteFromConnector (connector, params) {
       .query({
         source_account: params.sourceAccount,
         destination_account: params.destinationAccount,
-        destination_expiry_duration: 2
+        destination_expiry_duration: params.destinationExpiryDuration,
+        source_expiry_duration: params.sourceExpiryDuration
       })
       .query(params.sourceAmount
         ? {source_amount: params.sourceAmount}
