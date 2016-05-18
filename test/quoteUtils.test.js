@@ -19,7 +19,8 @@ describe('quoteUtils.getQuoteFromConnector', function () {
     const body = yield quoteUtils.getQuoteFromConnector(connector, {
       sourceAccount: 'http://ledger1.example/accounts/alice',
       destinationAccount: 'http://ledger2.example/accounts/bob',
-      destinationAmount: '123.456'
+      destinationAmount: '123.456',
+      destinationExpiryDuration: 2
     })
     assert.deepEqual(body, ['quotes'])
     quoteNock.done()
@@ -32,14 +33,17 @@ describe('quoteUtils.getQuoteFromConnector', function () {
         source_account: 'http://ledger1.example/accounts/alice',
         destination_account: 'http://ledger2.example/accounts/bob',
         destination_amount: '123.456',
-        destination_expiry_duration: 2
+        destination_expiry_duration: 15,
+        source_expiry_duration: 20
       })
       .reply(500)
     try {
       yield quoteUtils.getQuoteFromConnector(connector, {
         sourceAccount: 'http://ledger1.example/accounts/alice',
         destinationAccount: 'http://ledger2.example/accounts/bob',
-        destinationAmount: '123.456'
+        destinationAmount: '123.456',
+        destinationExpiryDuration: 15,
+        sourceExpiryDuration: 20
       })
     } catch (err) {
       assert.equal(err.status, 500)

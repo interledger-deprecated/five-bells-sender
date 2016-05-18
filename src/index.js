@@ -168,6 +168,8 @@ function executePayment (quote, params) {
  * @param {Object} params
  * @param {String} params.sourceAccount
  * @param {String} params.destinationAccount
+ * @param {Number} params.destinationExpiryDuration
+ * @param {Number} params.sourceExpiryDuration
  * Exactly one of the following:
  * @param {String} params.sourceAmount
  * @param {String} params.destinationAmount
