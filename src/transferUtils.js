@@ -11,11 +11,9 @@ const agents = {}
  * @param {Object} additionalInfo
  * @returns {Transfer}
  */
-function setupTransfers (sourceTransfer, additionalInfo) {
-  return mapTransferChain(sourceTransfer, function (transfer) {
-    transfer.id = transfer.id || transfer.ledger + '/transfers/' + uuid()
-    transfer.additional_info = Object.assign({}, additionalInfo)
-    return transfer
+function setupTransferId (transfer) {
+  return Object.assign({}, transfer, {
+    id: transfer.id || transfer.ledger + '/transfers/' + uuid()
   })
 }
 
@@ -28,45 +26,28 @@ function setupTransfers (sourceTransfer, additionalInfo) {
  * @param {URI} params.caseId (iff isAtomic)
  * @returns {Transfer[]}
  */
-function setupConditions (sourceTransfer, params) {
+function setupConditions (transfer, params) {
   // Use one Date.now() as the base of all expiries so that when a ms passes
   // between when the source and destination expiries are calculated the
   // minMessageWindow isn't exceeded.
   const now = Date.now()
 
   // The first transfer must be submitted by us with authorization
-  // TODO: This must be a genuine authorization from the user
-  sourceTransfer.debits[0].authorized = true
+  transfer.debits[0].authorized = true
 
   // Add conditions/expirations to all transfers.
-  return mapTransferChain(sourceTransfer, function (transfer) {
-    if (params.isAtomic) {
-      return setupTransferConditionsAtomic(transfer, {
-        executionCondition: params.executionCondition,
-        cancellationCondition: params.cancellationCondition,
-        caseId: params.caseId
-      })
-    } else {
-      return setupTransferConditionsUniversal(transfer, {
-        executionCondition: params.executionCondition,
-        now: now
-      })
-    }
-  })
-}
-
-/**
- * @param {Transfer} firstTransfer
- * @param {Function(transfer) -> newTransfer} each
- * @returns {Transfer} the new first transfer
- */
-function mapTransferChain (firstTransfer, each) {
-  const newFirstTransfer = each(firstTransfer)
-  const memo = newFirstTransfer.credits[0].memo
-  if (memo && memo.destination_transfer) {
-    memo.destination_transfer = mapTransferChain(memo.destination_transfer, each)
+  if (params.isAtomic) {
+    return setupTransferConditionsAtomic(transfer, {
+      executionCondition: params.executionCondition,
+      cancellationCondition: params.cancellationCondition,
+      caseId: params.caseId
+    })
+  } else {
+    return setupTransferConditionsUniversal(transfer, {
+      executionCondition: params.executionCondition,
+      now: now
+    })
   }
-  return newFirstTransfer
 }
 
 /**
@@ -141,7 +122,7 @@ function getAgent (auth) {
   return agents[auth.cert] || (agents[auth.cert] = new https.Agent(auth))
 }
 
-exports.setupTransfers = setupTransfers
+exports.setupTransferId = setupTransferId
 exports.setupConditions = setupConditions
 exports.setupTransferConditionsAtomic = setupTransferConditionsAtomic
 exports.setupTransferConditionsUniversal = setupTransferConditionsUniversal

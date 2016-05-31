@@ -82,11 +82,10 @@ function quoteToTransfer (quote, sourceAccount, destinationAccount) {
       account: quote.source_connector_account,
       amount: quote.source_amount,
       memo: {
-        destination_transfer: {
+        ilp_header: {
           ledger: quote.destination_ledger,
-          debits: [{ account: null, amount: quote.destination_amount }],
-          credits: [{ account: destinationAccount, amount: quote.destination_amount }],
-          expiry_duration: quote.destination_expiry_duration
+          account: destinationAccount,
+          amount: quote.destination_amount
         }
       }
     }],
