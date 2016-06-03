@@ -12,30 +12,23 @@ const transferUtils = require('../src/transferUtils')
 const transfer = { id: 'http://ledger.example/transfers/1234' }
 const now = 1454400000000
 
-const alice = 'http://usd-ledger.example/accounts/alice'
-const bob = 'http://eur-ledger.example/accounts/bob'
-
 beforeEach(function () {
   this.quote = clone(require('./fixtures/quote.json'))
-  this.setupTransfer = transferUtils.setupTransfers(this.quote, alice, bob)
+  this.setupTransfer = transferUtils.setupTransferId(this.quote)
   this.transfers = clone(require('./fixtures/transfers.json'))
 })
 
-describe('transferUtils.setupTransfers', function () {
-  it('sets up a valid payment', function () {
+describe('transferUtils.setupTransferId', function () {
+  it('sets up a valid transfer id', function () {
     assert(isTransferID('usd', this.setupTransfer.id))
-    assert(isTransferID('eur', this.setupTransfer.credits[0].memo.destination_transfer.id))
   })
 
-  it('should use provided transfer IDs', function () {
+  it('should use provided transfer ID', function () {
     const sourceTransferId = 'http://eur-ledger.example/transfers/d3170b2b-7b98-4528-8ace-d810460dbe15'
-    const destinationTransferId = 'http://eur-ledger.example/transfers/35bc13b3-b929-446d-9ed7-e78d75abef07'
     const quote = clone(this.quote)
     quote.id = sourceTransferId
-    quote.credits[0].memo.destination_transfer.id = destinationTransferId
-    const transfer = transferUtils.setupTransfers(quote, alice, bob)
+    const transfer = transferUtils.setupTransferId(quote)
     assert.equal(transfer.id, sourceTransferId)
-    assert.equal(transfer.credits[0].memo.destination_transfer.id, destinationTransferId)
   })
 })
 
@@ -48,7 +41,6 @@ describe('transferUtils.setupConditions', function () {
     })
     assert.strictEqual(transfer.debits[0].authorized, true)
     assert.deepEqual(transfer.execution_condition, executionCondition)
-    assert.deepEqual(transfer.credits[0].memo.destination_transfer.execution_condition, executionCondition)
   })
 })
 

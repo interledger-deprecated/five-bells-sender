@@ -128,11 +128,10 @@ describe('quoteUtils.quoteToTransfer', function () {
           account: 'http://ledgerA.example/accounts/mark',
           amount: '100',
           memo: {
-            destination_transfer: {
+            ilp_header: {
               ledger: 'http://ledgerC.example',
-              debits: [{ account: null, amount: '50' }],
-              credits: [{ account: bob, amount: '50' }],
-              expiry_duration: 5
+              account: bob,
+              amount: '50'
             }
           }
         }],

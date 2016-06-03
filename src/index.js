@@ -64,7 +64,7 @@ function sendPayment (params) {
 /**
  * Execute a transaction.
  *
- * @param {Transfer} quote - The quoted payment path.
+ * @param {Transfer} sourceTransfer - Transfer we need to execute to initiate the payment
  * @param {Object} params
  *
  * Required for both modes:
@@ -92,17 +92,20 @@ function sendPayment (params) {
  * @param {String} [params.caseId] = A notary case ID - if not provided, one will be generated
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
-function executePayment (quote, params) {
+function executePayment (sourceTransfer, params) {
   return co(function * () {
     const isAtomic = !!params.notary
     if (isAtomic && !params.notaryPublicKey) {
       throw new Error('Missing required parameter: notaryPublicKey')
     }
 
-    let sourceTransfer = transferUtils.setupTransfers(quote, params.additionalInfo)
+    sourceTransfer = transferUtils.setupTransferId(sourceTransfer)
 
+    if (params.additionalInfo) {
+      sourceTransfer.additional_info = params.additionalInfo
+    }
     if (params.destinationMemo) {
-      getDestinationTransfer(sourceTransfer).credits[0].memo = params.destinationMemo
+      sourceTransfer.credits[0].memo.ilp_header.data = params.destinationMemo
     }
     if (params.sourceMemo) {
       sourceTransfer.debits[0].memo = params.sourceMemo
@@ -124,13 +127,13 @@ function executePayment (quote, params) {
     const caseId = isAtomic && (yield notaryUtils.setupCase({
       notary: params.notary,
       caseId: params.caseID || params.caseId,
-      receiptCondition: receiptCondition,
-      transfers: [sourceTransfer, getDestinationTransfer(sourceTransfer)],
+      receiptCondition,
+      transfers: [sourceTransfer],
       expiresAt: transferUtils.transferExpiresAt(Date.now(), sourceTransfer)
     }))
 
     const conditionParams = {
-      receiptCondition: receiptCondition,
+      receiptCondition,
       caseId,
       notary: params.notary,
       notaryPublicKey: params.notaryPublicKey
@@ -247,14 +250,6 @@ function getLedgerConnectors (ledger) {
     const res = yield request.get(ledger + '/connectors')
     return res.body
   })
-}
-
-/**
- * @param {Transfer} transfer
- * @returns {Transfer}
- */
-function getDestinationTransfer (transfer) {
-  return transfer.credits[0].memo.destination_transfer
 }
 
 module.exports = sendPayment

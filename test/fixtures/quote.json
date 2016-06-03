@@ -7,17 +7,10 @@
     "amount": "10",
     "account": "http://usd-ledger.example/accounts/mark",
     "memo": {
-      "destination_transfer": {
+      "ilp_header": {
         "ledger": "http://eur-ledger.example",
-        "debits": [{
-          "amount": "4.87",
-          "account": "http://eur-ledger.example/accounts/mark"
-        }],
-        "credits": [{
-          "amount": "4.87",
-          "account": "http://eur-ledger.example/accounts/bob"
-        }],
-        "expiry_duration": 1000
+        "amount": "4.87",
+        "account": "http://eur-ledger.example/accounts/bob"
       }
     }
   }],
