@@ -101,14 +101,30 @@ function executePayment (sourceTransfer, params) {
 
     sourceTransfer = transferUtils.setupTransferId(sourceTransfer)
 
+    const sourceUsername = (yield getAccount(params.sourceAccount)).name
+    const auth = {
+      username: sourceUsername,
+      password: params.sourcePassword,
+      key: params.sourceKey,
+      cert: params.sourceCert,
+      ca: params.ca
+    }
+
     if (params.additionalInfo) {
       sourceTransfer.additional_info = params.additionalInfo
     }
-    if (params.destinationMemo) {
-      sourceTransfer.credits[0].memo.ilp_header.data = params.destinationMemo
-    }
     if (params.sourceMemo) {
       sourceTransfer.debits[0].memo = params.sourceMemo
+    }
+
+    // Same-ledger transfer.
+    if (!sourceTransfer.credits[0].memo || !sourceTransfer.credits[0].memo.ilp_header) {
+      sourceTransfer.debits[0].authorized = true
+      sourceTransfer.state = yield transferUtils.postTransfer(sourceTransfer, auth)
+      return sourceTransfer
+    }
+    if (params.destinationMemo) {
+      sourceTransfer.credits[0].memo.ilp_header.data = params.destinationMemo
     }
 
     // In universal mode, all transfers are prepared. Then the recipient
@@ -150,14 +166,7 @@ function executePayment (sourceTransfer, params) {
     })
 
     // Prepare the first transfer.
-    const sourceUsername = (yield getAccount(params.sourceAccount)).name
-    sourceTransfer.state = yield transferUtils.postTransfer(sourceTransfer, {
-      username: sourceUsername,
-      password: params.sourcePassword,
-      key: params.sourceKey,
-      cert: params.sourceCert,
-      ca: params.ca
-    })
+    sourceTransfer.state = yield transferUtils.postTransfer(sourceTransfer, auth)
 
     return sourceTransfer
   })
@@ -190,14 +199,20 @@ function findPath (_params) {
     }
 
     const connectorAccounts = yield getLedgerConnectors(params.sourceLedger)
-    const quotes = yield connectorAccounts.map(function (connectorAccount) {
+    const quotes = (yield connectorAccounts.map(function (connectorAccount) {
       return quoteUtils.getQuoteFromConnector(connectorAccount.connector, params)
-    })
+        // Don't fail if no path is found
+        .catch(ignoreAssetsNotTradedError)
+    })).filter((quote) => !!quote)
     if (!quotes.length) return
     return quoteUtils.quoteToTransfer(quotes.reduce(quoteUtils.getCheaperQuote),
       params.sourceAccount,
       params.destinationAccount)
   })
+}
+
+function ignoreAssetsNotTradedError (err) {
+  if (err.response.body.id !== 'AssetsNotTradedError') throw err
 }
 
 /**
