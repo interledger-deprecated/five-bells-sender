@@ -5,19 +5,19 @@ test:
   override:
     # Run lint
     - npm run lint
-    - npm test
+    # Run tests with coverage
+    - npm test --coverage -- -R spec-xunit-file
     # Run integration test suite
     - npm run integration
-    # Run tests with coverage
-    #- npm test --coverage -- -R spec-xunit-file
+  post:
     # Extract test artifacts
-    #- cp xunit.xml ${CIRCLE_TEST_REPORTS}/deployment:
+    - cp xunit.xml "${CIRCLE_TEST_REPORTS}/"
+    # Upload coverage data
+    - npm run report-coverage
 deployment:
   production:
     branch: master
     commands:
-      # Upload coverage data
-      #- npm run coveralls
       # Push NPM package if not yet published
       - mv npmrc-env .npmrc
       - if [ -z "$(npm info $(npm ls --depth=-1 2>/dev/null | head -1 | cut -f 1 -d " ") 2>/dev/null)" ] ; then npm publish ; fi

@@ -2,3 +2,5 @@
 babel
 *.log
 /integration-test/
+/coverage/
+/xunit.xml
