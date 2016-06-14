@@ -14,7 +14,7 @@ test:
     #- cp xunit.xml ${CIRCLE_TEST_REPORTS}/deployment:
 deployment:
   production:
-    branch: master
+    branch: [master, ilp_server_alpha]
     commands:
       # Upload coverage data
       #- npm run coveralls
