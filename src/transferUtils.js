@@ -21,6 +21,7 @@ function setupTransferId (transfer) {
  * @param {Transfer} sourceTransfer
  * @param {Object} params
  * @param {Boolean} params.isAtomic
+ * @param {Boolean} params.isUniversal
  * @param {Condition} params.executionCondition
  * @param {Condition} params.cancellationCondition (iff isAtomic)
  * @param {URI} params.caseId (iff isAtomic)
@@ -42,11 +43,14 @@ function setupConditions (transfer, params) {
       cancellationCondition: params.cancellationCondition,
       caseId: params.caseId
     })
-  } else {
+  } else if (params.isUniversal) {
     return setupTransferConditionsUniversal(transfer, {
       executionCondition: params.executionCondition,
       now: now
     })
+  } else { // optimistic mode
+    delete transfer.expiry_duration
+    return transfer
   }
 }
 
