@@ -37,10 +37,20 @@ describe('transferUtils.setupConditions', function () {
     const executionCondition = '4QRmhUtrxlwQYaO+c8K2BtCd6c4D8HVmy5fLDSjsH6A='
     const transfer = transferUtils.setupConditions(this.setupTransfer, {
       isAtomic: false,
+      isUniversal: true,
       executionCondition: executionCondition
     })
     assert.strictEqual(transfer.debits[0].authorized, true)
     assert.deepEqual(transfer.execution_condition, executionCondition)
+  })
+
+  it('supports optimistic mode', function () {
+    const transfer = transferUtils.setupConditions(this.setupTransfer, {
+      isAtomic: false,
+      isUniversal: false
+    })
+    assert.strictEqual(transfer.debits[0].authorized, true)
+    assert.strictEqual(transfer.execution_condition, undefined)
   })
 })
 

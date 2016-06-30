@@ -95,6 +95,8 @@ function sendPayment (params) {
 function executePayment (sourceTransfer, params) {
   return co(function * () {
     const isAtomic = !!params.notary
+    const isOptimistic = !params.receiptCondition && !isAtomic
+    const isUniversal = !isAtomic && !isOptimistic
     if (isAtomic && !params.notaryPublicKey) {
       throw new Error('Missing required parameter: notaryPublicKey')
     }
@@ -134,9 +136,7 @@ function executePayment (sourceTransfer, params) {
     // In atomic mode, all transfers execute when the notary receives the
     // receipt and notifies the ledgers that it was received on time.
     const receiptCondition = params.receiptCondition
-
-    // TODO: We could use optimistic mode if no receipt condition was specified.
-    if (!receiptCondition) {
+    if (!receiptCondition && !isOptimistic) {
       throw new Error('Missing required parameter: receiptCondition')
     }
 
@@ -155,11 +155,12 @@ function executePayment (sourceTransfer, params) {
       notaryPublicKey: params.notaryPublicKey
     }
 
-    const executionCondition = params.executionCondition || conditionUtils.getExecutionCondition(conditionParams)
+    const executionCondition = !isOptimistic && (params.executionCondition || conditionUtils.getExecutionCondition(conditionParams))
     const cancellationCondition = isAtomic && (params.cancellationCondition || conditionUtils.getCancellationCondition(conditionParams))
 
     sourceTransfer = transferUtils.setupConditions(sourceTransfer, {
       isAtomic,
+      isUniversal,
       executionCondition,
       cancellationCondition,
       caseId
