@@ -36,6 +36,7 @@ const quoteUtils = require('./quoteUtils')
  * @param {Object} params.additionalInfo
  * @param {Condition} params.receiptCondition - Object, execution condition.
  *                                              If not provided, one will be generated.
+ * @param {Boolean} params.unsafeOptimisticTransport - Set for optimistic mode
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
 function sendPayment (params) {
@@ -57,6 +58,7 @@ function sendPayment (params) {
     sourceMemo: params.sourceMemo,
     additionalInfo: params.additionalInfo,
     receiptCondition: params.receiptCondition,
+    unsafeOptimisticTransport: params.unsafeOptimisticTransport,
     ca: params.ca
   }))
 }
@@ -90,12 +92,13 @@ function sendPayment (params) {
  * @param {String} [params.cancellationCondition] - Object, cancellation condition.
  *   If not provided, one will be generated.
  * @param {String} [params.caseId] = A notary case ID - if not provided, one will be generated
+ * @param {Boolean} [params.unsafeOptimisticTransport] - Set for optimistic mode
  * @param {String|Buffer} [params.ca] - Optional TLS CA if not using default CA (optional for https requests)
  */
 function executePayment (sourceTransfer, params) {
   return co(function * () {
     const isAtomic = !!params.notary
-    const isOptimistic = !params.receiptCondition && !isAtomic
+    const isOptimistic = !!params.unsafeOptimisticTransport
     const isUniversal = !isAtomic && !isOptimistic
     if (isAtomic && !params.notaryPublicKey) {
       throw new Error('Missing required parameter: notaryPublicKey')
