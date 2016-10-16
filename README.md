@@ -2,14 +2,14 @@
 
 [npm-image]: https://img.shields.io/npm/v/five-bells-sender.svg?style=flat
 [npm-url]: https://npmjs.org/package/five-bells-sender
-[circle-image]: https://circleci.com/gh/interledger/five-bells-sender.svg?style=shield
-[circle-url]: https://circleci.com/gh/interledger/five-bells-sender
-[codecov-image]: https://codecov.io/gh/interledger/five-bells-sender/branch/master/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/interledger/five-bells-sender
+[circle-image]: https://circleci.com/gh/interledgerjs/five-bells-sender.svg?style=shield
+[circle-url]: https://circleci.com/gh/interledgerjs/five-bells-sender
+[codecov-image]: https://codecov.io/gh/interledgerjs/five-bells-sender/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/interledgerjs/five-bells-sender
 
 > A reference implementation of an [Interledger](https://interledger.org) sending client
 
-You can see the visualization in action as part of the [`five-bells-demo`](https://github.com/interledger/five-bells-demo)!
+You can see the visualization in action as part of the [`five-bells-demo`](https://github.com/interledgerjs/five-bells-demo)!
 
 ## Example: Universal Mode
 
